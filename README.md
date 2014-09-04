@@ -1,7 +1,7 @@
 Plume
 =====
 
-A Javascript and Python-based visual novel engine.
+An in-browser visual novel engine written in Javascript.
 
 Setting Up Plume
 ----
