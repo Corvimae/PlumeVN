@@ -82,15 +82,181 @@ If the user selects "Yes", Plume will return to the startOfTutorial block and di
 Plume doesn't care about whitespace, so you can leave as many empty lines between dialog, commands, and decisions as you like.
 
 ###Interfaces
-An interface is a JSON formatted file which contains definitions for all the visual elements that might appear in the scene, as well as a list of any image files that the author wishes to be precached at the load time.
+An interface is a JSON formatted file which contains definitions for all the visual elements that might appear in the scene, as well as a list of any image files that the author wishes to be precached at the load time. An interface file is defined in `[myNovel].plume/[myScene].scene/[myScene].interface`. 
 
 The general structure of an Interface file is as follows:
 
 ```
 {
-    "assets": {},
-    "elements": {}
+    "assets": [],
+    "elements": []
 }
 ```
+
+An asset represents a media element that Plume should precache at startup. It is a JSON object containing the following fields:
+- name: A unique identifier for the asset
+- type: The type of asset. Currently, only `image` will be accepted.
+- src: The filename of the image. Do not include `assets/`.
+
+An element represents something that should be drawn to the canvas. It is a JSON object containing the following fields:
+- id: A unique identifier for the element
+- class: The type of element that this definition represents. Depending on the class, some properties may need to be specified.
+- propeties: A JSON object of key: value pairs that tell Plume how to display the element.
+- events: A JSON object of key: value pairs that define Python functions to call on certain triggers.
+
+The following elements exist in the latest version of Plume:
+
+####UIElement
+
+The basic element that all other elements inherit. It displays it's ID as a string. UIElement should not be used.
+
+**Properties**
+
+x: The x-coordinate of the element
+y: The y-coordinate of the element
+z: The z-index of the element
+visible: Whether or not the element should be drawn
+
+####UIRect
+
+Represents a basic rectangle. Extends UIElement.
+
+**Properties**
+
+width: The width of the rectangle
+height: The height of the rectangle
+baseColor: The background color
+borderColor: The border color. If no borderColor is specified, no border is drawn.
+
+####UIString
+
+Represents a piece of text. Extends UIElement. If the ID of a UIString element is `main_text_display`, Plume will print all dialog to it.
+
+**Properties**
+
+color: The color of the text
+font: The font the text is drawn in. Must be in a format accepted by Canvas, such as `
+"14px Helvetica"`
+value: The text to be drawn.
+
+####UIImage
+
+Represents a static image. Extends UIElement. 
+
+**Properties**
+
+image: The name of the asset that should be used. Should not contain any file type extensions.
+
+
+####Example
+```
+{
+	"assets": [
+		{
+			"name": "myImage",
+			"type":	"image",
+			"src": 	"myImage.png"
+		}
+	],
+    "elements": [
+        {
+            "class": "UIImage",
+            "id": "test_elem",
+            "properties": {
+                "x": 240,
+                "y": 200,
+                "z": 9,
+                "visible": true,
+                "image": "myImage"
+            },
+            "events": {}
+        },
+        {
+        	"class": "UIRect",
+        	"id":	"test_elem_2",
+        	"properties": {
+        		"x": 0,
+        		"y": 0,
+        		"z": 0,
+        		"width": "1000",
+        		"height": "500",
+        		"baseColor":	"rgb(225, 225, 255)",
+        		"borderColor":	"rgb(90, 0, 0)",
+        		"visible": true
+        	},
+        	"events": {}
+        },
+        {
+        	"class":	"UIString",
+        	"id":		"test_elem_3",
+        	"properties": {
+        		"x": 50,
+        		"y": 50,
+        		"z": 7,
+        		"visible": true,
+        		"value": "I am a test string.",
+        		"color": "rgb(90, 0, 0)"
+        	},
+        	"events": {}
+        }
+    ]
+}
+```
+###Scripting
+Plume uses the Skulpt library to provide a limited version of Python in which the author can create more advanced functionality. Plume will only accept valid `.py` files. A script file is defined in `[myNovel].plume/[myScene].scene/[scriptFileName].py`. Note that the Python file name does not need to match the scene name, unlike interface and story files.
+
+####Plume Extension
+In order to use the Plume Python extension, the plume library must be imported using `import plume`. 
+
+The Plume library provides the following classes and methods.
+
+#####Global
+`getElement(id) -> UIElement` - Returns the `UIElement` object with the provided ID.
+
+`getCurrentLine(id) -> String` - Returns the current line of dialog.
+
+#####UIElement
+
+Represents one of the elements being drawn to the canvas.
+
+`getProperty(key) -> (dynamic)` - Returns a specific property from the element, such as visible.
+
+`setProperty(key, value) -> void` - Assigns the specified value to the specified property.
+
+`setPosition(x, y) -> void` - Sets the x and y property of the element.
+
+`hide() -> void` - Sets the visible property to false.
+
+`show() -> void` - Sets the visible property to true.
+
+####Example
+```
+import plume
+
+print "I will be printed to the debug console at startup."
+
+def myFirstScript():
+    plume.getElement('myElement').setPosition(0, 0)
+    plume.getElement('myElement').show()
+```
+
+###Configuration
+Each scene may have a configuration file, which may be defined within `[myNovel].plume/[myScene].scene/[myScene].config`. The following values may be defined within the scene configuration file:
+
+`scriptFile="fileName"` - Defines the script file that this scene uses.
+
+`scrollSpeed=50` - Defines the default speed that the typewriter effect occurs at.
+
+###Global Configuration
+A `plume.config` file must be specified in the root directory of the plume file. The following values may be defined within the global configuration file:
+
+`title="Title Name"` - Defines the name of the visual novel
+
+`mainScene="sceneName"` - Tells Plume which scene should be loaded first. Should not include .scene
+
+
+
+
+
 
 
