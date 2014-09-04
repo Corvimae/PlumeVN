@@ -1,0 +1,50 @@
+<html>
+<head>
+<title>Plume Test</title>
+<style type="text/css">
+#plumeCanvas {
+	position: absolute;
+	left: 0px;
+	top: 0px;	
+	z-index: -1;	
+}
+
+body {
+	font-size: 0.8em;
+	overflow: hidden;
+	height: 100%;
+	
+}
+
+#console {
+	display: inline-block;
+	position: absolute;
+	right: 0px;
+	height: 100%;
+	top: 0px;
+	overflow: auto;
+}
+
+#fps {
+	position: absolute;
+	text-align: right;
+	left: 500px;
+	top: 0px;
+}
+
+img {
+	display: none;
+}
+
+</style>
+</head>
+<body>
+<button onclick="javascript: Plume.finishLine()">Next</button><br>
+<canvas id="plumeCanvas" width="1000" height="500"></canvas>
+<div id="console"></div>
+<div id="fps"></div>
+<script src="js/skulpt.min.js"></script>
+<script src="js/skulpt-stdlib.js"></script>
+<script src="js/plume.js"></script>
+</body>
+</html>
