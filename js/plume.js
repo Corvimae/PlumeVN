@@ -532,7 +532,7 @@ Plume.prototype.draw = function() {
 	now = Date.now();
     delta = now - then;
     this.writeTicks += delta;
-    document.getElementById("fps").innerHTML = Math.round(1000 / delta) + " FPS";
+    if(document.getElementById("fps")) document.getElementById("fps").innerHTML = Math.round(1000 / delta) + " FPS";
 	if (delta > interval) {
 		then = now - (delta % interval);
 	    this.waitTime -= delta;
@@ -565,24 +565,27 @@ var delta;
 Plume.prototype.error = function(error, lineNumber, file) {
 	if(lineNumber !== undefined) {
 		console.error((file ? file + " - " : "") + "Plume error on line " + lineNumber + ": " + error);
-		document.getElementById('console').innerHTML = document.getElementById('console').innerHTML + "<font color='#990000'>Error on line " + lineNumber + ": " + error + "</font><br>";
-	} else {
 		console.error("Plume: " + error);
-		document.getElementById('console').innerHTML = document.getElementById('console').innerHTML + "<font color='#990000'>Error: " + error + "</font><br>";
+		if(document.getElementById('console')) document.getElementById('console').innerHTML = document.getElementById('console').innerHTML + "<font color='#990000'>Error on line " + lineNumber + ": " + error + "</font><br>";
+	} else {
+		if(document.getElementById('console')) document.getElementById('console').innerHTML = document.getElementById('console').innerHTML + "<font color='#990000'>Error: " + error + "</font><br>";
 	}
 }
 
 Plume.prototype.debug = function(line) {
 	if(typeof line === "string" && line.trim().length === 0) return;
 	console.log(line);
-	document.getElementById('console').innerHTML = document.getElementById('console').innerHTML + "<font color='#009900'>" + line + "</font><br>";
-	document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
+	if(document.getElementById('console')) {
+		document.getElementById('console').innerHTML = document.getElementById('console').innerHTML + "<font color='#009900'>" + line + "</font><br>";
+		document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
+	}
 
 }
 
 Plume.prototype.print = function(line) {
 	console.log(line);
-	document.getElementById('console').innerHTML = document.getElementById('console').innerHTML + line + "<br>";
+	if(document.getElementById('console')) 
+		document.getElementById('console').innerHTML = document.getElementById('console').innerHTML + line + "<br>";
 }
 
 var plume = new Plume();
