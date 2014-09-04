@@ -28,11 +28,11 @@ A story file contains the dialog that makes up most of the novel's content. A st
 ####Format
 A story file is defined in `[myNovel].plume/[myScene].scene/[myScene].story`. Note that the name of the story  must match the name of the scene. 
 
-_Defining a block_
+#####Defining a block
 
 A block can be created using the format `[[blockName]]`. If two blocks have the same name, the later one will overwrite the earlier one. There must be a `[[start]]` block somewhere in the story, or else Plume will not know where to begin.
 
-_Adding Dialog_
+#####Adding Dialog
 
 Within your block, dialog can be written as if it were a screenplay, in the format
 _actor_: _line_. For example, if the character May wanted to say "Hello, world!", the story file might look like this:
@@ -42,7 +42,7 @@ _actor_: _line_. For example, if the character May wanted to say "Hello, world!"
 May: Hello, world!
 ```
 
-_Inline Tags_
+#####Inline Tags
 
 Plume has a variety of modifiers that can be written in a line of dialog which change the way Plume processes the line. Most tags follow the format `<key:value>`, but some tags that do not take values look like `<key>`. Unlike other tag-based markup languages, Plume tags do not need to be closed. The effect of the tag applies until another rule overrides it.
 
@@ -60,13 +60,13 @@ Note: A runScript tag may provide arguments if the function would take them, suc
 
 If the function specified in runScript is proceeded by an exclaimation point, such as `<runScript: displayNumber(3)!>`, Plume will display the next line of dialog as soon as the command is over. Otherwise, Plume will wait for the user to press Space.
 
-_Command Tags_
+#####Command Tags
 
 Some tags can be used outside of a line of dialog. These tags will run when they are stepped to; that is, when the user finishes reading the line before it, the command tag will fire. 
 
 Currently, the `runScript` tag and the `to` tag are the only tags that may be used as commands. We reccomend using the `to` tag only as a command, as the inline version will fire as soon as it is reached, regardless of how much the user has read.
 
-_Decisions_
+#####Decisions
 
 An important aspect of any interactive novel is the interaction itself. In Plume, this is achieved through a decision line. A decision line can be defined with the format `{header, block: string, block: string...}`. The user will be presented with a list of options, and Plume will proceed to the block assigned to the selection they choose.
 
@@ -77,7 +77,7 @@ For example, if at the end of a tutorial we wanted to make sure the user underst
 ```
 If the user selects "Yes", Plume will return to the startOfTutorial block and display the whole thing again. If they select "No", Plume will proceed to the moveOn block.
 
-_Formatting Tips_
+#####Formatting Tips
 
 Plume doesn't care about whitespace, so you can leave as many empty lines between dialog, commands, and decisions as you like.
 
