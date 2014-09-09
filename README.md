@@ -77,6 +77,8 @@ For example, if at the end of a tutorial we wanted to make sure the user underst
 ```
 If the user selects "Yes", Plume will return to the startOfTutorial block and display the whole thing again. If they select "No", Plume will proceed to the moveOn block.
 
+A user-specified decisions UIElement can be defined in the interface by creating a UIGroup with the id `main_option_display`. This UIGroup should contain five UIString items with the names `main_option_display_selection_0`, `main_option_display_selection_1`, `main_option_display_selection_2`, `main_option_display_selection_3`, and `main_option_display_dialog`.
+
 #####Formatting Tips
 
 Plume doesn't care about whitespace, so you can leave as many empty lines between dialog, commands, and decisions as you like.
@@ -116,6 +118,7 @@ x: The x-coordinate of the element
 y: The y-coordinate of the element
 z: The z-index of the element
 visible: Whether or not the element should be drawn
+debug: Whether or not to draw debugging information
 
 ####UIRect
 
@@ -147,8 +150,47 @@ Represents a static image. Extends UIElement.
 
 image: The name of the asset that should be used. Should not contain any file type extensions.
 
+####UIGroup
 
-####Example
+Represents a grouping of object. Children of the group have their x, y, and z values calculated relative to the x, y, and z of their parent UIGroup.
+
+UIGroup has a special array called "children" in it's root level, which can contain any number of UIElements. 
+
+A UIGroup can have click events attached to it. If you want one of your UIGroup's elements to have higher click priority than the UIGroup itself, set it's z property higher than 0.
+
+A UIGroup might look something like:
+```
+{
+	"class": "UIGroup",
+	"id":	"test_group",
+	"properties": {
+		"x": 50,
+		"y": 50,
+		"z": 3,
+		"visible": true,
+	},
+	"events": {},
+	"children: [
+		{
+			"class":	"UIString"
+			...
+		},
+		{
+			"class": "UIImage"
+			...
+		}	
+	]
+}
+```
+
+####Events
+Events can be added in any UIElement's event object. They are defined in the formation `"eventName": "pythonMethod"`.
+
+The following events can be triggered in the current version of Plume. Event names are always case sensitive.
+
+**onClick**: Triggers when the UIElement is clicked on with the cursor.
+
+####Example .interface File
 ```
 {
 	"assets": [
@@ -253,7 +295,6 @@ A `plume.config` file must be specified in the root directory of the plume file.
 `title="Title Name"` - Defines the name of the visual novel
 
 `mainScene="sceneName"` - Tells Plume which scene should be loaded first. Should not include .scene
-
 
 
 
