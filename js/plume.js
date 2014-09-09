@@ -886,6 +886,3 @@ Object.size = function(obj) {
     return size;
 };
 
-var plume = new Plume();
-
-if(plume.loadProject("test1.plume")) plume.start();
