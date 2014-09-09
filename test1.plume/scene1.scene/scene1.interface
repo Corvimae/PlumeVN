@@ -7,18 +7,7 @@
 		}
 	],
     "elements": [
-        {
-            "class": "UIElement",
-            "id": "test_elem",
-            "properties": {
-                "x": 240,
-                "y": 200,
-                "z": 9,
-                "visible": true
-            },
-            "events": {}
-        },
-        {
+		{
         	"class": "UIRect",
         	"id":	"test_elem_2",
         	"properties": {
@@ -33,18 +22,47 @@
         	},
         	"events": {}
         },
-        {
-        	"class":	"UIString",
-        	"id":		"test_elem_3",
-        	"properties": {
-        		"x": 50,
-        		"y": 50,
-        		"z": 7,
-        		"visible": true,
-        		"value": "I am a test string.",
-        		"color": "rgb(90, 0, 0)"
-        	},
-        	"events": {}
-        }
+    	{
+    		"class": "UIGroup",
+    		"id": "test_group",
+    		"properties": {
+    			"x": 240,
+    			"y": 200,
+    			"z": 9,
+    			"visible": true,
+    			"debug": true
+    		},
+    		"children": [
+	    		{
+		            "class": "UIElement",
+		            "id": "test_elem",
+		            "properties": {
+		                "x": 240,
+		                "y": 200,
+		                "z": 9,
+		                "visible": true,
+		                "debug": true
+		            },
+		            "events": {
+		            	"onClick": "groupClickTest"
+		            }
+		        },
+		        {
+		        	"class":	"UIString",
+		        	"id":		"test_elem_3",
+		        	"properties": {
+		        		"x": 50,
+		        		"y": 50,
+		        		"z": 7,
+		        		"visible": true,
+		        		"value": "I am a test string.",
+		        		"color": "rgb(90, 0, 0)",
+		        		"debug": true
+		        	},
+		        	"events": {}
+		        }
+    		],
+    		"events": {}
+    	}
     ]
 }
