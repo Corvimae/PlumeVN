@@ -79,6 +79,8 @@ If the user selects "Yes", Plume will return to the startOfTutorial block and di
 
 A user-specified decisions UIElement can be defined in the interface by creating a UIGroup with the id `main_option_display`. This UIGroup should contain five UIString items with the names `main_option_display_selection_0`, `main_option_display_selection_1`, `main_option_display_selection_2`, `main_option_display_selection_3`, and `main_option_display_dialog`.
 
+The decisions interface uses a UIElement named `main_option_cursor` to designate which option the user has selected. If no `main_option_cursor` is supplied in the interface file, one will be created automatically. You may use any UIElement as your cursor.
+
 #####Formatting Tips
 
 Plume doesn't care about whitespace, so you can leave as many empty lines between dialog, commands, and decisions as you like.
@@ -128,8 +130,8 @@ Represents a basic rectangle. Extends UIElement.
 
 width: The width of the rectangle
 height: The height of the rectangle
-baseColor: The background color
-borderColor: The border color. If no borderColor is specified, no border is drawn.
+fillColor: The background color
+strokeColor: The border color. If no borderColor is specified, no border is drawn.
 
 ####UIString
 
@@ -149,6 +151,16 @@ Represents a static image. Extends UIElement.
 **Properties**
 
 image: The name of the asset that should be used. Should not contain any file type extensions.
+
+####UIPoly
+
+Represents a shape drawn from a collection of poitns. Extends UIElement.
+
+**Properties**
+
+points: An array of points in the format [x0, y0, x1, y1 ..., xn, yn]. The points array is converted into a new array of ordered pairs when the UIPoly is created, so new points cannot be added by appending to the end of the points property.
+fillColor: The background color of the polygon
+strokeColor: The border color of the polygon
 
 ####UIGroup
 
