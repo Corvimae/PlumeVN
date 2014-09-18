@@ -116,10 +116,10 @@ The basic element that all other elements inherit. It displays it's ID as a stri
 
 **Properties**
 
-x: The x-coordinate of the element
-y: The y-coordinate of the element
-z: The z-index of the element
-visible: Whether or not the element should be drawn
+x: The x-coordinate of the element<br>
+y: The y-coordinate of the element<br>
+z: The z-index of the element<br>
+visible: Whether or not the element should be drawn<br>
 debug: Whether or not to draw debugging information
 
 ####UIRect
@@ -128,9 +128,9 @@ Represents a basic rectangle. Extends UIElement.
 
 **Properties**
 
-width: The width of the rectangle
-height: The height of the rectangle
-fillColor: The background color
+width: The width of the rectangle<br>
+height: The height of the rectangle<br>
+fillColor: The background color<br>
 strokeColor: The border color. If no borderColor is specified, no border is drawn.
 
 ####UIString
@@ -139,9 +139,9 @@ Represents a piece of text. Extends UIElement. If the ID of a UIString element i
 
 **Properties**
 
-color: The color of the text
+color: The color of the text<br>
 font: The font the text is drawn in. Must be in a format accepted by Canvas, such as `
-"14px Helvetica"`
+"14px Helvetica"`<br>
 value: The text to be drawn.
 
 ####UIImage
@@ -158,8 +158,8 @@ Represents a shape drawn from a collection of poitns. Extends UIElement.
 
 **Properties**
 
-points: An array of points in the format [x0, y0, x1, y1 ..., xn, yn]. The points array is converted into a new array of ordered pairs when the UIPoly is created, so new points cannot be added by appending to the end of the points property.
-fillColor: The background color of the polygon
+points: An array of points in the format [x0, y0, x1, y1 ..., xn, yn]. The points array is converted into a new array of ordered pairs when the UIPoly is created, so new points cannot be added by appending to the end of the points property.<br>
+fillColor: The background color of the polygon<br>
 strokeColor: The border color of the polygon
 
 ####UIGroup
