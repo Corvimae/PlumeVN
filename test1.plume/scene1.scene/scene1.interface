@@ -7,6 +7,19 @@
 		}
 	],
     "elements": [
+    	{
+    		"class": "UIPoly",
+    		"id":	"test_poly",
+    		"properties": {
+    			"x": 50,
+    			"y": 50,
+    			"z": 50,
+    			"visible": true,
+				"fillColor": "rgb(90, 0, 0)",
+				"points": [0, 0, 50, 0, 50, 50, 0, 50]
+    		},
+    		"events": {}
+    	},
 		{
         	"class": "UIRect",
         	"id":	"test_elem_2",
@@ -16,8 +29,8 @@
         		"z": 0,
         		"width": "1000",
         		"height": "500",
-        		"baseColor":	"rgb(225, 225, 255)",
-        		"borderColor":	"rgb(90, 0, 0)",
+        		"fillColor":	"rgb(225, 225, 255)",
+        		"strokeColor":	"rgb(90, 0, 0)",
         		"visible": true
         	},
         	"events": {}
@@ -59,7 +72,9 @@
 		        		"color": "rgb(90, 0, 0)",
 		        		"debug": true
 		        	},
-		        	"events": {}
+		        	"events": {
+		        		"onClick": "groupClickTest"
+		        	}
 		        }
     		],
     		"events": {}

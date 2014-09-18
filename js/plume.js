@@ -103,10 +103,12 @@ function UIElement(id) {
 function UIString(id) {
 	var base = new UIElement(id);
 	base.class = "UIString";
-	var dx = 0, dy = 0;
+	var dx = -99999, dy = -99999;
 	base.draw = function(ctx) {
 		dx = this.getProperty("x"), dy = this.getProperty("y");
 		ctx.font = this.getProperty("font") || "14px Helvetica";
+		var fontSize = parseInt(new RegExp("([0-9]+)[Pp][Xx]").exec(ctx.font)[1], 10);
+
 		ctx.fillStyle = this.getProperty("color");
 		//Draw character by character, applying line formatting.
 		var line = this.properties.value;
@@ -125,7 +127,7 @@ function UIString(id) {
 							ctx.fillStyle = val;
 							break;
 						case "br":
-							dy += 20;
+							dy += (fontSize + 6);
 							dx = this.properties.x;
 							break;
 					}
@@ -138,20 +140,83 @@ function UIString(id) {
 		}
 	}
 	
+	
 	base.recalculateBoundingBox = function() {	
 		var ctx = Plume.prototype.instance.drawContext;	
 		var basePos = this.getParentBasePosition();
 		ctx.font = this.getProperty("font") || "14px Helvetica"
 		//Get the font size
-		var fontSize = new RegExp("([0-9]+)[Pp][Xx]").exec(ctx.font)[1];
+		var fontSize = parseInt(new RegExp("([0-9]+)[Pp][Xx]").exec(ctx.font)[1], 10);
+		var mDx = 0;
+		var lines = this.properties.value.split("<br>");
+		for(var i = 0; i < lines.length; i++) {
+			var len = ctx.measureText(lines[i]).width;
+			if(len > mDx) mDx = len;
+		}
 		this.boundingBox =  {
 			x1: basePos.x + this.properties.x,
 			y1: basePos.y + this.properties.y - fontSize,
-			x2: basePos.x + this.properties.x + dx,
-			y2: basePos.y + dy
+			x2: basePos.x + this.properties.x + mDx,
+			y2: basePos.y + this.properties.y + ((lines.length - 1) * (fontSize + 6))
 		}
 	}
 	
+	return base;
+}
+
+function UIPoly(id) {
+	var base = new UIElement(id);
+	base.class = "UIPoly";
+	base.draw = function(ctx) {
+		ctx.beginPath();
+		ctx.moveTo(this.properties.x + this.points[0].x, this.properties.y + this.points[0].y);
+		for(i = 1; i < this.points.length; i++) {
+			ctx.lineTo(this.properties.x + this.points[i].x, this.properties.y + this.points[i].y);
+		}
+		ctx.closePath();
+		var fill = this.getProperty("fillColor");
+		if(fill) {
+			ctx.fillStyle = fill;	
+			ctx.fill();
+		}
+		var stroke = this.getProperty("strokeColor");
+		if(stroke) {
+			ctx.strokeStyle = stroke;
+			ctx.stroke();
+		}
+	}
+	
+	
+	base.setPoints = function() {
+		var out = [];
+		var workingPoint;
+		for(var i = 0; i < this.properties.points.length; i++) {
+			if(i % 2 == 0) workingPoint = { x: this.properties.points[i], y: 0 };
+			if(i % 2 == 1) {
+				workingPoint.y = this.properties.points[i];
+				out.push(workingPoint);
+			}
+		}
+		base.points = out;
+	}
+	
+	base.recalculateBoundingBox = function() {
+		var basePos = this.getParentBasePosition();
+		var minX = 99999, minY = 99999, maxX = -99999, maxY = -99999;
+		for(var i = 0; i < this.points.length; i++) {
+			var point = this.points[i];
+			if(point.x < minX) minX = point.x;
+			if(point.y < minY) minY = point.y;
+			if(point.x > maxX) maxX = point.x;
+			if(point.x > maxY) maxY = point.y;
+		}
+		this.boundingBox =  {
+			x1: basePos.x + minX,
+			y1: basePos.y + minY,
+			x2: basePos.x + maxX,
+			y2: basePos.y + maxY
+		}
+	}
 	return base;
 }
 
@@ -161,10 +226,10 @@ function UIRect(id) {
 	base.draw = function(ctx) {
 		ctx.beginPath();
 		ctx.rect(this.getProperty('x'), this.getProperty('y'), this.getProperty('width'), this.getProperty('height'));
-		ctx.fillStyle = this.getProperty('baseColor');
+		ctx.fillStyle = this.getProperty('fillColor');
 		ctx.fill();
-		if(this.getProperty('borderColor')) {
-			ctx.strokeStyle = this.getProperty('borderColor');
+		if(this.getProperty('strokeColor')) {
+			ctx.strokeStyle = this.getProperty('strokeColor');
 			ctx.stroke();
 		}
 		ctx.closePath();
@@ -264,6 +329,8 @@ function UIGroup(data) {
 Plume.prototype.elements = [];
 Plume.prototype.elementLookupTable = [];
 Plume.prototype.waitTime = 0; //Delay for a wait element
+Plume.prototype.selectedOption = 0; //Where to display the pointer arrow.
+
 
 Plume.prototype.loadProject = function(file) {
 	this.debug("Loading project: " + file);
@@ -284,6 +351,7 @@ Plume.prototype.loadProject = function(file) {
 		//Load the default scene
 		this.loadScene("scene1.scene");
 	}
+
 	return true;
 	
 }
@@ -308,7 +376,7 @@ Plume.prototype.loadInterface = function(file) {
 		this.elementLookupTable.push(newItem);
 	}
 	//Search for main_text_display
-	var doesMainDisplayExist = false, doesMainOptionDisplayExist = false;
+	var doesMainDisplayExist = false, doesMainOptionDisplayExist = false, doesMainOptionCursorExist = false;
 	for(var i = 0; i < this.elementLookupTable.length; i++) {
 		if(this.elementLookupTable[i].id === "main_text_display") {
 			doesMainDisplayExist = true;
@@ -317,6 +385,11 @@ Plume.prototype.loadInterface = function(file) {
 		if(this.elementLookupTable[i].id === "main_option_display") {
 			doesMainOptionDisplayExist = true;
 			this.mainOptionDisplay = this.elementLookupTable[i];
+		}
+		
+		if(this.elementLookupTable[i].id === "main_option_cursor") {
+			doesMainOptionCursorExist = true;
+			this.mainOptionCursor = this.elementLookupTable[i];
 		}
 	}
 	if(!doesMainDisplayExist) {
@@ -363,6 +436,7 @@ Plume.prototype.loadInterface = function(file) {
 		}
 		mainText.events = {};
 		elementList.push(mainText);
+		
 		var data = {
 			"id": "main_option_display",
 			"properties": {
@@ -379,6 +453,28 @@ Plume.prototype.loadInterface = function(file) {
 		this.elementLookupTable.push(mainGroup);
 		this.mainOptionDisplay = mainGroup;
 	}
+	
+	if(!doesMainOptionCursorExist) {
+		var cursor = new UIPoly("main_option_cursor");
+		cursor.properties = {
+			"x": 100,
+			"y": 100,
+			"z": 20,
+			"visible": true,
+			"points": [0, 0, 5, 5, 0, 10],
+			"fillColor": "#000000"
+		}
+		cursor.events = {};
+		cursor.setPoints();
+		this.registerElement(cursor);
+		this.mainOptionCursor = cursor;
+	}
+	
+}
+
+Plume.prototype.registerElement = function(elem) {
+	this.elements.push(elem);
+	this.elementLookupTable.push(elem);
 }
 
 Plume.prototype.processElementFromDefinition = function(elem) {
@@ -389,9 +485,14 @@ Plume.prototype.processElementFromDefinition = function(elem) {
 		case "UIRect":		newItem = new UIRect(elem.id); break;
 		case "UIImage":		newItem = new UIImage(elem.id); break;
 		case "UIGroup":		newItem = new UIGroup(elem); break;
+		case "UIPoly":		newItem = new UIPoly(elem); break;
 	}
 	newItem.properties = elem.properties;
 	newItem.events = this.processElementEvents(elem.events);
+	//Secondary setup
+	switch(elem.class) {
+		case "UIPoly": newItem.setPoints(); break;
+	}
 	return newItem;
 }
 
@@ -567,6 +668,9 @@ Plume.prototype.start = function() {
 		if(elem && elem.events.onClick) elem.events.onClick(ev);
 	}
 
+	//Initial calculation of all bounding boxes
+	this.recalculateBoundingBoxes();
+
 	//Start the story!
 	this.displayNextDialogLine();
 	requestAnimationFrame(function() { self.draw() });
@@ -580,9 +684,17 @@ Plume.prototype.initializeKeyBindings = function() {
 		var val = event.keyCode;
 		if(val === 32) { //space
 			self.finishLine();
-		}
-		
+		} 
 		return false;
+	}
+	
+	document.onkeydown = function(event) {
+		var val = event.keyCode;
+		if (val === 38) { //up
+			self.moveSelection(-1);
+		} else if (val === 40) { //down
+			self.moveSelection(1);
+		}
 	}
 }
 
@@ -614,7 +726,8 @@ Plume.prototype.displayNextDialogLine = function() {
 	
 	this.lookupElementById('main_option_display').properties.visible = false;
 	this.lookupElementById('main_text_display').properties.visible = true;
-	
+	this.lookupElementById('main_option_cursor').properties.visible = false;
+
 	var list = this.activeBlock.dialogList;
 	var line = list[this.blockLine++];
 	if(line instanceof DialogOption) {
@@ -637,9 +750,14 @@ Plume.prototype.displayNextDialogLine = function() {
 
 			}
 		}
+		this.selectedOption = 0;
+		
 		this.lookupElementById('main_option_display_dialog').setProperty("value", line.text);
 		this.lookupElementById('main_option_display').properties.visible = true;
 		this.lookupElementById('main_text_display').properties.visible = false;
+		var cursor = this.lookupElementById('main_option_cursor');
+		cursor.properties.visible = true;
+		this.setCursorPosition();
 		
 	} else if(line instanceof ScriptCall) {
 		var func = line.func;
@@ -667,6 +785,25 @@ Plume.prototype.lookupElementById = function(id) {
 	return null;
 }
 
+Plume.prototype.moveSelection = function(dir) {
+	var line = this.activeBlock.dialogList[this.blockLine - 1];
+	if(line instanceof DialogOption) {
+		this.selectedOption += dir;
+		if(this.selectedOption < 0) this.selectedOption = line.options.length - 1;
+		if(this.selectedOption > line.options.length - 1) this.selectedOption = 0;
+		this.setCursorPosition();
+		
+	}
+}
+
+Plume.prototype.setCursorPosition = function() {
+	var cursor = this.lookupElementById('main_option_cursor');
+	
+	var opt = this.lookupElementById('main_option_display_selection_' + this.selectedOption);
+	cursor.properties.x = opt.boundingBox.x1 - 10;
+	cursor.properties.y = opt.boundingBox.y1 - (cursor.boundingBox.y2 - cursor.boundingBox.y1) / 2 + (opt.boundingBox.y2 - opt.boundingBox.y1) / 2;
+}
+
 Plume.prototype.finishLine = function() {
 	//Skip the typewriter effect if there's still text to display, otherwise move on to the next line.
 	if(this.currentLinePosition < this.currentLine.length) {
@@ -674,7 +811,12 @@ Plume.prototype.finishLine = function() {
 			this.drawNextCharacter(true);
 		}
 	} else {
-		this.displayNextDialogLine();	
+		var line = this.activeBlock.dialogList[this.blockLine - 1];
+		if(line instanceof DialogOption) {
+			this.goToBlock(line.options[this.selectedOption].block);
+		} else {
+			this.displayNextDialogLine();	
+		}
 	}
 }
 
@@ -827,11 +969,13 @@ Plume.prototype.drawSpecificElement = function(context, element) {
 		element.draw(context);
 		if(element.properties.debug && element.boundingBox) {
 			var box = element.boundingBox;
+			context.save();
 			context.setTransform(1, 0, 0, 1, 0, 0); //Reset transformations
 			context.beginPath();
 			context.rect(box.x1, box.y1, box.x2 - box.x1, box.y2 - box.y1);
 			context.stroke();
 			context.closePath();
+			context.restore();
 		}	
 	}
 }

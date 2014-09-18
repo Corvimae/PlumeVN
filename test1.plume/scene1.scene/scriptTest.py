@@ -1,7 +1,7 @@
 import plume
 
 print "This runs on initial startup."
-plume.getElement("test_elem_3").setProperty("value", "I am a label!")
+plume.getElement("test_elem_3").setProperty("value", "I am a label!<br>woooo")
 
 print plume.getElement("test_elem_3").getProperty("visible")
 
