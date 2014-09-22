@@ -347,12 +347,13 @@ Plume.prototype.loadProject = function(file) {
 		}
 	});
 	
+	
 	if(this.settings["mainScene"] === undefined) {
 		//Load the default scene
 		this.loadScene("scene1.scene");
 	}
-
-	return true;
+	
+		return true;
 	
 }
 
@@ -378,23 +379,23 @@ Plume.prototype.loadInterface = function(file) {
 	//Search for main_text_display
 	var doesMainDisplayExist = false, doesMainOptionDisplayExist = false, doesMainOptionCursorExist = false;
 	for(var i = 0; i < this.elementLookupTable.length; i++) {
-		if(this.elementLookupTable[i].id === "main_text_display") {
+		if(this.elementLookupTable[i].id === this.mainTextDisplayIdentifier) {
 			doesMainDisplayExist = true;
 			this.mainDisplay = this.elementLookupTable[i];
 		}
-		if(this.elementLookupTable[i].id === "main_option_display") {
+		if(this.elementLookupTable[i].id === this.mainOptionDisplayIdentifier) {
 			doesMainOptionDisplayExist = true;
 			this.mainOptionDisplay = this.elementLookupTable[i];
 		}
 		
-		if(this.elementLookupTable[i].id === "main_option_cursor") {
+		if(this.elementLookupTable[i].id === this.mainOptionCursor) {
 			doesMainOptionCursorExist = true;
 			this.mainOptionCursor = this.elementLookupTable[i];
 		}
 	}
 	if(!doesMainDisplayExist) {
 		var canvas = document.getElementById('plumeCanvas');
-		var mainDisplay = new UIString("main_text_display");
+		var mainDisplay = new UIString(this.mainTextDisplayIdentifier);
 		mainDisplay.properties = {
 			"x": 50,
 			"y": canvas.height - 50,
@@ -413,7 +414,7 @@ Plume.prototype.loadInterface = function(file) {
 		var canvas = document.getElementById('plumeCanvas');
 		var elementList = [];
 		for(var i = 0; i < 4; i++) {
-			var newOption = new UIString('main_option_display_selection_' + (3 - i));
+			var newOption = new UIString(this.mainOptionDisplayIdentifier + '_selection_' + (3 - i));
 			newOption.properties = {
 				"x": 0,
 				"y": -40*i,
@@ -425,7 +426,7 @@ Plume.prototype.loadInterface = function(file) {
 			newOption.events = {};
 			elementList.push(newOption);
 		}
-		var mainText = new UIString('main_option_display_dialog');
+		var mainText = new UIString(this.mainOptionDisplayIdentifier + '_dialog');
 		mainText.properties = {
 			"x": 0,
 			"y": -160,
@@ -438,7 +439,7 @@ Plume.prototype.loadInterface = function(file) {
 		elementList.push(mainText);
 		
 		var data = {
-			"id": "main_option_display",
+			"id": this.mainOptionDisplayIdentifier,
 			"properties": {
 				"x": 50,
 				"y": canvas.height - 50,
@@ -455,7 +456,7 @@ Plume.prototype.loadInterface = function(file) {
 	}
 	
 	if(!doesMainOptionCursorExist) {
-		var cursor = new UIPoly("main_option_cursor");
+		var cursor = new UIPoly(this.mainOptionCursorIdentifier);
 		cursor.properties = {
 			"x": 100,
 			"y": 100,
@@ -469,6 +470,8 @@ Plume.prototype.loadInterface = function(file) {
 		this.registerElement(cursor);
 		this.mainOptionCursor = cursor;
 	}
+	
+	console.log('Interface created');
 	
 }
 
@@ -534,6 +537,9 @@ Plume.prototype.loadScene = function(scene) {
 
 	this.activeScene = new Scene();
 	this.activeScene.settings = this.parseConfig(this.loadFile(baseUrl + sceneName + ".config"));
+	this.mainTextDisplayIdentifier = this.activeScene.settings['mainTextDisplay'] || "main_text_display";
+	this.mainOptionDisplayIdentifier = this.activeScene.settings['mainOptionDisplay'] || "main_option_display";
+	this.mainOptionCursorIdentifier = this.activeScene.settings['mainOptionCursor'] || "main_option_cursor";
 	
 	if(!this.parseStory(rawStory)) {
 		this.error("Unable to parse story. Aborting load.");
@@ -724,10 +730,9 @@ Plume.prototype.displayNextDialogLine = function() {
 	}
 	
 	this.scrollSpeed = this.getSceneSettingsValue("scrollSpeed", 60);
-	
-	this.lookupElementById('main_option_display').properties.visible = false;
-	this.lookupElementById('main_text_display').properties.visible = true;
-	this.lookupElementById('main_option_cursor').properties.visible = false;
+	this.lookupElementById(this.mainOptionDisplayIdentifier).properties.visible = false;
+	this.lookupElementById(this.mainTextDisplayIdentifier).properties.visible = true;
+	this.lookupElementById(this.mainOptionCursorIdentifier).properties.visible = false;
 
 	var list = this.activeBlock.dialogList;
 	var line = list[this.blockLine++];
@@ -737,7 +742,7 @@ Plume.prototype.displayNextDialogLine = function() {
 		for(var i = 0; i < 4; i++) {
 			var option = line.options[i];
 			if(option) {
-				var elem = this.lookupElementById('main_option_display_selection_' + i)
+				var elem = this.lookupElementById(this.mainOptionDisplayIdentifier + '_selection_' + i)
 				elem.properties.visible = true;
 				elem.setProperty("value", option.text);
 				elem.events.onClick = (function() {
@@ -747,16 +752,16 @@ Plume.prototype.displayNextDialogLine = function() {
 					}
 				})();
 			} else {
-				this.lookupElementById('main_option_display_selection_' + i).properties.visible = false;
+				this.lookupElementById(this.mainOptionDisplayIdentifier + '_selection_' + i).properties.visible = false;
 
 			}
 		}
 		this.selectedOption = 0;
 		
-		this.lookupElementById('main_option_display_dialog').setProperty("value", line.text);
-		this.lookupElementById('main_option_display').properties.visible = true;
-		this.lookupElementById('main_text_display').properties.visible = false;
-		var cursor = this.lookupElementById('main_option_cursor');
+		this.lookupElementById(this.mainOptionDisplayIdentifier + '_dialog').setProperty("value", line.text);
+		this.lookupElementById(this.mainOptionDisplayIdentifier).properties.visible = true;
+		this.lookupElementById(this.mainTextDisplayIdentifier).properties.visible = false;
+		var cursor = this.lookupElementById(this.mainOptionCursorIdentifier);
 		cursor.properties.visible = true;
 		this.setCursorPosition();
 		
@@ -798,9 +803,9 @@ Plume.prototype.moveSelection = function(dir) {
 }
 
 Plume.prototype.setCursorPosition = function() {
-	var cursor = this.lookupElementById('main_option_cursor');
+	var cursor = this.lookupElementById(this.mainOptionCursorIdentifier);
 	
-	var opt = this.lookupElementById('main_option_display_selection_' + this.selectedOption);
+	var opt = this.lookupElementById(this.mainOptionDisplayIdentifier + '_selection_' + this.selectedOption);
 	cursor.properties.x = opt.boundingBox.x1 - 10;
 	cursor.properties.y = opt.boundingBox.y1 - (cursor.boundingBox.y2 - cursor.boundingBox.y1) / 2 + (opt.boundingBox.y2 - opt.boundingBox.y1) / 2;
 }

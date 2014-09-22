@@ -77,9 +77,9 @@ For example, if at the end of a tutorial we wanted to make sure the user underst
 ```
 If the user selects "Yes", Plume will return to the startOfTutorial block and display the whole thing again. If they select "No", Plume will proceed to the moveOn block.
 
-A user-specified decisions UIElement can be defined in the interface by creating a UIGroup with the id `main_option_display`. This UIGroup should contain five UIString items with the names `main_option_display_selection_0`, `main_option_display_selection_1`, `main_option_display_selection_2`, `main_option_display_selection_3`, and `main_option_display_dialog`.
+A user-specified decisions UIElement can be defined in the interface by creating a UIGroup with the id `main_option_display`, unless the configuration key `mainOptionDisplay` is set. This UIGroup should contain five UIString items with the names `[prefix]_selection_0`, `[prefix]_selection_1`, `[prefix]_selection_2`, `[prefix]_selection_3`, and `[prefix]_dialog`. By default, these will be `main_option_display_selection_0`, and so forth.
 
-The decisions interface uses a UIElement named `main_option_cursor` to designate which option the user has selected. If no `main_option_cursor` is supplied in the interface file, one will be created automatically. You may use any UIElement as your cursor.
+The decisions interface uses a UIElement set by the configuration key `mainOptionCursor` (defaulting to `main_option_cursor`) to designate which option the user has selected. If no valid object is supplied in the interface file, one will be created automatically. You may use any UIElement as your cursor.
 
 #####Formatting Tips
 
@@ -135,7 +135,7 @@ strokeColor: The border color. If no borderColor is specified, no border is draw
 
 ####UIString
 
-Represents a piece of text. Extends UIElement. If the ID of a UIString element is `main_text_display`, Plume will print all dialog to it.
+Represents a piece of text. Extends UIElement. If the ID of a UIString element is the same as the `mainTextDisplay` key in the configuration file (defaults to `main_text_display`), Plume will print all dialog to it.
 
 **Properties**
 
