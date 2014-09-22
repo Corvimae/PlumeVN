@@ -649,10 +649,11 @@ Plume.prototype.start = function() {
 	
 	//Set up canvas
 	var canvas = document.getElementById('plumeCanvas');
-	canvas.width = canvas.getAttribute("width");
-	canvas.height = canvas.getAttribute("height");
-	canvas.style.width = canvas.width;
-	canvas.style.height = canvas.height;
+	Plume.prototype.pixelRatio = window.devicePixelRatio;
+	canvas.width = canvas.getAttribute("width") * this.pixelRatio;
+	canvas.height = canvas.getAttribute("height") * this.pixelRatio;
+	canvas.style.width = canvas.width / this.pixelRatio;
+	canvas.style.height = canvas.height / this.pixelRatio;
 	this.canvas = canvas;
 	this.drawContext = canvas.getContext('2d');
 	
@@ -957,9 +958,12 @@ Plume.prototype.draw = function() {
 				this.drawNextCharacter();
 				this.writeTicks = 0;
 			}
+			this.drawContext.save();
+			this.drawContext.scale(this.pixelRatio, this.pixelRatio);
 			for(var i = 0; i < this.elements.length; i++) {
 				this.drawSpecificElement(self.drawContext, this.elements[i])
 			}
+			this.drawContext.restore();
 		}
 	}
 }
@@ -971,6 +975,7 @@ Plume.prototype.drawSpecificElement = function(context, element) {
 			var box = element.boundingBox;
 			context.save();
 			context.setTransform(1, 0, 0, 1, 0, 0); //Reset transformations
+			context.scale(this.pixelRatio, this.pixelRatio); //Account for hiDPI
 			context.beginPath();
 			context.rect(box.x1, box.y1, box.x2 - box.x1, box.y2 - box.y1);
 			context.stroke();
