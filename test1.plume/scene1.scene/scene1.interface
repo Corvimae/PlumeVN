@@ -15,10 +15,46 @@
     			"y": 50,
     			"z": 50,
     			"visible": true,
-				"fillColor": "rgb(90, 0, 0)",
-				"points": [0, 0, 50, 0, 50, 50, 0, 50]
+				"fillColor": "rgb(0, 90, 0)",
+				"points": [0, 0, 50, 0, 50, 50, 0, 50],
+				"debug": true
     		},
     		"events": {}
+    	},
+    	{
+    		"class": "UIEllipse",
+    		"id":	"test_ellipse",
+    		"properties": {
+    			"x": 150,
+    			"y": 80,
+    			"z": 10,
+    			"xRadius": 20,
+    			"yRadius": 30,
+    			"fillColor": "rgb(90, 0, 0)",
+    			"strokeColor": "rgb(0,0,0)",
+    			"opacity": 0.5,
+    			"visible": true,
+    			"debug": true
+    		},
+    		"events": {}
+    		
+    	},
+    	{
+    		"class": "UIEllipse",
+    		"id":	"test_ellipse",
+    		"properties": {
+    			"x": 510,
+    			"y": 393,
+    			"z": 10,
+    			"xRadius": 5,
+    			"yRadius": 5,
+    			"fillColor": "rgb(90, 0, 0)",
+    			"strokeColor": "rgb(0,0,0)",
+    			"opacity": 0.5,
+    			"visible": true
+    		},
+    		"events": {}
+    		
     	},
 		{
         	"class": "UIRect",
@@ -58,7 +94,12 @@
 		            },
 		            "events": {
 		            	"onClick": "groupClickTest"
-		            }
+		            },
+		    		"transformations": [
+		    			"rotate(45)",
+		    			"scalex(2)",
+		    			"scaley(2)"
+		    		]	
 		        },
 		        {
 		        	"class":	"UIString",

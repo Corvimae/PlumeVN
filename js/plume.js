@@ -47,6 +47,7 @@ function UIElement(id) {
 	this.class = "UIElement";
 	this.id = id;
 	this.boundingBox = null;
+	this.baseBoundingBox = {x1: 0, y1: 0, x2: 0, y2: 0}
 	this.parent = null;
 	this.properties = {
 		x: 0,
@@ -64,6 +65,8 @@ function UIElement(id) {
 		ctx.fillText(this.id, this.properties.x, this.properties.y);
 	}
 	
+	this.parsedTransformations = [];
+	
 	this.getProperty = function(key) {
 		return this.properties[key];
 	}
@@ -76,6 +79,54 @@ function UIElement(id) {
 		return Object.size(this.events) > 0;
 	}
 	
+	this.applyTransformations = function(ctx) {
+		ctx.globalAlpha = this.getProperty('opacity') || 1.0;
+		for(var t = 0; t < this.parsedTransformations.length; t++) {
+			var action = this.parsedTransformations[t];
+			var base = this.getParentBasePosition();
+			var dx = this.baseBoundingBox.x1 + (this.baseBoundingBox.x2 - this.baseBoundingBox.x1)/2 - base.x,
+				dy = this.baseBoundingBox.y1 + (this.baseBoundingBox.y2 - this.baseBoundingBox.y1)/2 - base.y;
+			ctx.translate(dx, dy);
+			switch(action.key) {
+				case "rotate":
+					
+					ctx.rotate(action.value * Math.PI / 180); 
+					break;
+				case "scalex":
+					ctx.scale(action.value, 1);
+					break;
+				case "scaley":
+					ctx.scale(1, action.value);
+					break;					
+			}
+			ctx.translate(-1 * dx, -1 * dy);		
+
+		}
+	}
+	
+	this.setTransformations = function(transformations) {
+		if(!transformations) return;
+		for(var t = 0; t < transformations.length; t++) {
+			var action = transformations[t];
+			var parts = /([a-zA-Z0-9]+)\(([0-9]+)\)/.exec(action);
+			this.parsedTransformations.push({ key: parts[1].trim().toLowerCase(), value: parseInt(parts[2].trim(), 10) });
+		}
+	}
+	
+	
+	this.fillAndStroke = function(ctx) {
+		var fill = this.getProperty("fillColor");
+		if(fill) {
+			ctx.fillStyle = fill;	
+			ctx.fill();
+		}
+		var stroke = this.getProperty("strokeColor");
+		if(stroke) {
+			ctx.strokeStyle = stroke;
+			ctx.stroke();
+		}
+	}
+	
 	this.recalculateBoundingBox = function() {
 		var ctx = Plume.prototype.instance.drawContext;
 		var basePos = this.getParentBasePosition();
@@ -84,6 +135,74 @@ function UIElement(id) {
 			y1: basePos.y + this.properties.y - 14,
 			x2: basePos.x + this.properties.x + ctx.measureText(this.id).width,
 			y2: basePos.y + this.properties.y
+		}
+	}
+	
+	this.applyBoundingBoxTransformations = function() {
+		for(var t = 0; t < this.parsedTransformations.length; t++) {
+			var action = this.parsedTransformations[t];
+			switch(action.key) {
+				case "rotate":
+				//Rotate
+				function rotate(x, y, x0, y0, deg) {
+					return {
+						x: x0 + (x - x0) * Math.cos(deg) + (y - y0) * Math.sin(deg),
+						y: y0 - (x - x0) * Math.sin(deg) + (y - y0) * Math.cos(deg)
+					}
+				}
+				var base = this.getParentBasePosition(),
+					x1 = this.boundingBox.x1 - base.x,
+					y1 = this.boundingBox.y1 - base.y,
+					x2 = this.boundingBox.x2 - base.x,
+					y2 = this.boundingBox.y2 - base.y,
+					xC = x1 + (x2 - x1)/2,
+					yC = y1 + (y2 - y1)/2;
+				var rad = action.value * Math.PI / 180;
+				
+				//Find the rotated coordinates of all four points
+				var rots = [rotate(x1, y1, xC, yC, rad),
+				rotate(x1, y2, xC, yC, rad),
+				rotate(x2, y1, xC, yC, rad),
+				rotate(x2, y2, xC, yC, rad)]
+				//Determine the maximum
+				var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE, maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
+				for(var i = 0; i < 4; i++) {
+					var r = rots[i];
+					if(r.x < minX) minX = r.x;
+					if(r.x > maxX) maxX = r.x;
+					if(r.y < minY) minY = r.y;
+					if(r.y > maxY) maxY = r.y;
+				}
+				this.boundingBox = {
+					x1: base.x + minX,
+					y1: base.y + minY,
+					x2: base.x + maxX,
+					y2: base.y + maxY
+				}
+				break;
+				case "scalex":
+				var width = this.boundingBox.x2 - this.boundingBox.x1,
+					xC = this.boundingBox.x1 + width/2;
+
+				this.boundingBox = {
+					x1: xC - (width * action.value)	/ 2,
+					y1: this.boundingBox.y1,
+					x2: xC + (width * action.value) / 2,
+					y2: this.boundingBox.y2
+				}
+				break;
+				case "scaley":
+				var height = this.boundingBox.y2 - this.boundingBox.y1,
+					yC = this.boundingBox.y1 + height/2;
+
+				this.boundingBox = {
+					x1: this.boundingBox.x1,
+					y1: yC - (width * action.value)	/ 2,
+					x2: this.boundingBox.x2,
+					y2: yC + (height * action.value)/ 2
+				}
+				break;
+			}
 		}
 	}
 	
@@ -174,16 +293,7 @@ function UIPoly(id) {
 			ctx.lineTo(this.properties.x + this.points[i].x, this.properties.y + this.points[i].y);
 		}
 		ctx.closePath();
-		var fill = this.getProperty("fillColor");
-		if(fill) {
-			ctx.fillStyle = fill;	
-			ctx.fill();
-		}
-		var stroke = this.getProperty("strokeColor");
-		if(stroke) {
-			ctx.strokeStyle = stroke;
-			ctx.stroke();
-		}
+		this.fillAndStroke(ctx);
 	}
 	
 	
@@ -202,7 +312,7 @@ function UIPoly(id) {
 	
 	base.recalculateBoundingBox = function() {
 		var basePos = this.getParentBasePosition();
-		var minX = 99999, minY = 99999, maxX = -99999, maxY = -99999;
+		var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE, maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
 		for(var i = 0; i < this.points.length; i++) {
 			var point = this.points[i];
 			if(point.x < minX) minX = point.x;
@@ -211,10 +321,10 @@ function UIPoly(id) {
 			if(point.x > maxY) maxY = point.y;
 		}
 		this.boundingBox =  {
-			x1: basePos.x + minX,
-			y1: basePos.y + minY,
-			x2: basePos.x + maxX,
-			y2: basePos.y + maxY
+			x1: basePos.x + minX + this.properties.x,
+			y1: basePos.y + minY + this.properties.y,
+			x2: basePos.x + maxX + this.properties.x,
+			y2: basePos.y + maxY + this.properties.y
 		}
 	}
 	return base;
@@ -226,13 +336,7 @@ function UIRect(id) {
 	base.draw = function(ctx) {
 		ctx.beginPath();
 		ctx.rect(this.getProperty('x'), this.getProperty('y'), this.getProperty('width'), this.getProperty('height'));
-		ctx.fillStyle = this.getProperty('fillColor');
-		ctx.fill();
-		if(this.getProperty('strokeColor')) {
-			ctx.strokeStyle = this.getProperty('strokeColor');
-			ctx.stroke();
-		}
-		ctx.closePath();
+		this.fillAndStroke(ctx);
 	}
 	
 	base.recalculateBoundingBox = function() {
@@ -244,6 +348,42 @@ function UIRect(id) {
 			y2: basePos.y + this.properties.y + parseInt(this.properties.height, 10)
 		}
 	}
+	return base;
+}
+
+function UIEllipse(id) {
+	var base = new UIElement(id);
+	base.class = "UIEllipse";
+	base.draw = function(ctx) {
+		var centerX = this.getProperty('x'), centerY = this.getProperty('y'), 
+			xRadius = this.getProperty('xRadius'), yRadius = this.getProperty('yRadius'),
+			k = .5522848 //kappa,
+			offsetX = xRadius * k,
+			offsetY = yRadius * k, 
+			xEnd = centerX + xRadius,
+			yEnd = centerY + yRadius,
+			xBase = centerX - xRadius,
+			yBase = centerY - yRadius;
+		ctx.beginPath();
+		ctx.moveTo(xBase, centerY);
+		ctx.bezierCurveTo(xBase, centerY - offsetY, centerX - offsetX, yBase, centerX, yBase);
+		ctx.bezierCurveTo(centerX + offsetX, yBase, xEnd, centerY - offsetY, xEnd, centerY);
+		ctx.bezierCurveTo(xEnd, centerY + offsetY, centerX + offsetX, yEnd, centerX, yEnd);
+		ctx.bezierCurveTo(centerX - offsetX, yEnd, xBase, centerY + offsetY, xBase, centerY);
+		this.fillAndStroke(ctx);
+		ctx.closePath();
+	}
+	
+	base.recalculateBoundingBox = function() {
+		var basePos = this.getParentBasePosition();
+		this.boundingBox = {
+			x1: basePos.x + this.getProperty('x') - this.getProperty('xRadius'),
+			y1: basePos.y + this.getProperty('y') - this.getProperty('yRadius'),
+			x2: basePos.x + this.getProperty('x') + this.getProperty('xRadius'),
+			y2: basePos.y + this.getProperty('y') + this.getProperty('yRadius')
+		}	
+	}
+	
 	return base;
 }
 
@@ -489,9 +629,11 @@ Plume.prototype.processElementFromDefinition = function(elem) {
 		case "UIImage":		newItem = new UIImage(elem.id); break;
 		case "UIGroup":		newItem = new UIGroup(elem); break;
 		case "UIPoly":		newItem = new UIPoly(elem); break;
+		case "UIEllipse":	newItem = new UIEllipse(elem); break;
 	}
 	newItem.properties = elem.properties;
 	newItem.events = this.processElementEvents(elem.events);
+	newItem.setTransformations(elem.transformations);
 	//Secondary setup
 	switch(elem.class) {
 		case "UIPoly": newItem.setPoints(); break;
@@ -656,8 +798,8 @@ Plume.prototype.start = function() {
 	//Set up canvas
 	var canvas = document.getElementById('plumeCanvas');
 	Plume.prototype.pixelRatio = window.devicePixelRatio;
-	canvas.width = canvas.getAttribute("width") * this.pixelRatio;
-	canvas.height = canvas.getAttribute("height") * this.pixelRatio;
+	canvas.width = this.getConfigValue("stageWidth", 720)* this.pixelRatio;
+	canvas.height = this.getConfigValue("stageHeight", 480) * this.pixelRatio;
 	canvas.style.width = canvas.width / this.pixelRatio;
 	canvas.style.height = canvas.height / this.pixelRatio;
 	this.canvas = canvas;
@@ -975,7 +1117,10 @@ Plume.prototype.draw = function() {
 
 Plume.prototype.drawSpecificElement = function(context, element) {
 	if(element.properties.visible) {
+		context.save();
+		element.applyTransformations(context);
 		element.draw(context);
+		context.restore();
 		if(element.properties.debug && element.boundingBox) {
 			var box = element.boundingBox;
 			context.save();
@@ -995,7 +1140,14 @@ Plume.prototype.recalculateBoundingBoxes = function() {
 	elems.sort(function(a, b) {
 		return a.class === "UIGroup" ? 1 : -1
 	});
-	for(i = 0; i < elems.length; i++) elems[i].recalculateBoundingBox();
+	for(i = 0; i < elems.length; i++) {
+		var elem = elems[i];
+		elem.recalculateBoundingBox();
+		//Save the base bounding box so we can use it to apply transformations
+		elem.baseBoundingBox = { x1: elem.boundingBox.x1, y1: elem.boundingBox.y1,
+								 x2: elem.boundingBox.x2, y2: elem.boundingBox.y2 };
+		elem.applyBoundingBoxTransformations();
+	}
 }
 
 //FPS setters

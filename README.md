@@ -120,6 +120,7 @@ x: The x-coordinate of the element<br>
 y: The y-coordinate of the element<br>
 z: The z-index of the element<br>
 visible: Whether or not the element should be drawn<br>
+opacity: The alpha value for the element<br>
 debug: Whether or not to draw debugging information
 
 ####UIRect
@@ -130,8 +131,19 @@ Represents a basic rectangle. Extends UIElement.
 
 width: The width of the rectangle<br>
 height: The height of the rectangle<br>
-fillColor: The background color<br>
-strokeColor: The border color. If no borderColor is specified, no border is drawn.
+fillColor: The background color of the rectangle. If no fillColor is specified, the element is not filled.<br>
+strokeColor: The border color of the rectangle. If no borderColor is specified, no border is drawn.
+
+####UIEllipse
+
+Represents a basic ellipse, centered at (x, y). Extends UIElement. 
+
+**Properties**
+
+xRadius: The distance from the center to the left and right-most points on the ellipse.<br>
+yRadius: The distance from the center to the top and bottom-most points on the ellipse.<br>
+fillColor: The background color of the ellipse. If no fillColor is specified, the element is not filled.<br>
+strokeColor: The border color of the ellipse. If no borderColor is specified, no border is drawn.
 
 ####UIString
 
@@ -202,6 +214,15 @@ The following events can be triggered in the current version of Plume. Event nam
 
 **onClick**: Triggers when the UIElement is clicked on with the cursor.
 
+####Transformations
+Each UIElement can have an array of strings titled `transformations` which Plume interpret as a series of 2D transformations to be performed on the element. Each transformation has the format `"action(value)"`, such as `"rotate(45)"`, and the transformations will be run in the order they are specified. All transformations are based at the element's center.
+
+The following transformations can be run in the current version of Plume. Transformation names are not case sensitive, but we reccomend using camel case for easy readability. Transformations cannot be run accurately on UIGroups, but elements within a UIGroup transform correctly.
+
+**rotate**: Rotates the element a specified number of degrees.<br>
+**scaleX**: Extends an element outward in both x-directions by a specified multiplier, such that the new total width is [multipler] * the previous width.
+**scaleY**: Same as scaleX, except in the y-direction.
+
 ####Example .interface File
 ```
 {
@@ -223,7 +244,10 @@ The following events can be triggered in the current version of Plume. Event nam
                 "visible": true,
                 "image": "myImage"
             },
-            "events": {}
+            "events": {},
+            "transformations": [
+            		"rotate(45)"
+            ]
         },
         {
         	"class": "UIRect",
