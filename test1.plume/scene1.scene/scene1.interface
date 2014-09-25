@@ -13,7 +13,7 @@
 	],
     "elements": [
     	{
-    		"class": "UIPoly",
+    		"class": "UIRoundedRect",
     		"id":	"test_poly",
     		"properties": {
     			"x": 50,
@@ -21,7 +21,9 @@
     			"z": 50,
     			"visible": true,
 				"fillColor": "rgb(0, 90, 0)",
-				"points": [0, 0, 50, 0, 50, 50, 0, 50],
+				"width": 200,
+				"height": 100,
+				"radius": 5,
 				"debug": true
     		},
     		"events": {},

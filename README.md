@@ -77,7 +77,9 @@ For example, if at the end of a tutorial we wanted to make sure the user underst
 ```
 If the user selects "Yes", Plume will return to the startOfTutorial block and display the whole thing again. If they select "No", Plume will proceed to the moveOn block.
 
-A user-specified decisions UIElement can be defined in the interface by creating a UIGroup with the id `main_option_display`, unless the configuration key `mainOptionDisplay` is set. This UIGroup should contain five UIString items with the names `[prefix]_selection_0`, `[prefix]_selection_1`, `[prefix]_selection_2`, `[prefix]_selection_3`, and `[prefix]_dialog`. By default, these will be `main_option_display_selection_0`, and so forth.
+A user-specified decisions UIElement can be defined in the interface by creating a UIGroup with the id `main_option_display`, unless the configuration key `mainOptionDisplay` is set. This UIGroup should contain five UIString items with the ids `[prefix]_selection_0`, `[prefix]_selection_1`, `[prefix]_selection_2`, `[prefix]_selection_3`, and `[prefix]_dialog`. By default, these will be `main_option_display_selection_0`, and so forth.
+
+Similarly, a UIGroup with the id `main_text_display` can be set to customize the appearance of the standard dialog box. This group should contain a UIString with the id `main_text_display_text`. If no `main_text_display` is defined, one will be created automatically, and it will include a UIRoundedRect with the name `main_text_display_autogen_bg`.
 
 The decisions interface uses a UIElement set by the configuration key `mainOptionCursor` (defaulting to `main_option_cursor`) to designate which option the user has selected. If no valid object is supplied in the interface file, one will be created automatically. You may use any UIElement as your cursor.
 
@@ -134,6 +136,13 @@ height: The height of the rectangle<br>
 fillColor: The background color of the rectangle. If no fillColor is specified, the element is not filled.<br>
 strokeColor: The border color of the rectangle. If no borderColor is specified, no border is drawn.
 
+####UIRoundedRect
+
+Represents a rectangle with rounded corners. Extends UIRect.
+
+**Properties**
+radius: The radius of the edge rounding.
+
 ####UIEllipse
 
 Represents a basic ellipse, centered at (x, y). Extends UIElement. 
@@ -147,7 +156,7 @@ strokeColor: The border color of the ellipse. If no borderColor is specified, no
 
 ####UIString
 
-Represents a piece of text. Extends UIElement. If the ID of a UIString element is the same as the `mainTextDisplay` key in the configuration file (defaults to `main_text_display`), Plume will print all dialog to it.
+Represents a piece of text. Extends UIElement.
 
 **Properties**
 

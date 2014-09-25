@@ -350,6 +350,29 @@ function UIRect(id) {
 	return base;
 }
 
+function UIRoundedRect(id) {
+	var base = new UIRect(id);
+	base.class = "UIRoundedRect";
+	base.draw = function(ctx) {
+		var x = this.properties.x, y = this.properties.y,
+			width = this.properties.width, height = this.properties.height,
+			radius = this.properties.radius
+		ctx.beginPath();
+		ctx.moveTo(x + radius, y);
+		ctx.lineTo(x + width - radius, y);
+		ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+		ctx.lineTo(x + width, y + height - radius);
+		ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+		ctx.lineTo(x + radius, y + height);
+		ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+		ctx.lineTo(x, y + radius);
+		ctx.quadraticCurveTo(x, y, x + radius, y);
+		this.fillAndStroke(ctx);
+
+	}
+	return base;
+}
+
 function UIEllipse(id) {
 	var base = new UIElement(id);
 	base.class = "UIEllipse";
@@ -523,6 +546,18 @@ Plume.prototype.loadInterface = function(file) {
 		if(this.elementLookupTable[i].id === this.mainTextDisplayIdentifier) {
 			doesMainDisplayExist = true;
 			this.mainDisplay = this.elementLookupTable[i];
+			mainDisplay.setProperty = function(key, value) {
+				if(key == "value") {
+				console.log(identPrefix + "_text");
+					self.lookupElementById(identPrefix + "_text").setProperty("value", value);
+				} else {
+					this.properties[key] = value;
+				}
+			}
+		
+			mainDisplay.getValue = function() {
+				return self.lookupElementById(identPrefix + "_text").properties.value;
+			}
 		}
 		if(this.elementLookupTable[i].id === this.mainOptionDisplayIdentifier) {
 			doesMainOptionDisplayExist = true;
@@ -536,16 +571,62 @@ Plume.prototype.loadInterface = function(file) {
 	}
 	if(!doesMainDisplayExist) {
 		var canvas = document.getElementById('plumeCanvas');
-		var mainDisplay = new UIString(this.mainTextDisplayIdentifier);
-		mainDisplay.properties = {
-			"x": 50,
-			"y": canvas.height - 50,
+		var elementList = [];
+
+		var mainDisplayBackground = new UIRoundedRect(this.mainTextDisplayIdentifier + "_autogen_bg");
+		mainDisplayBackground.properties = {
+			"x": 0,
+			"y": 0,
+			"z": 0,
+			"visible": true,
+			"width": canvas.width - 20,
+			"height": 90,
+			"radius": 5,
+			"fillColor": "rgb(255, 255, 255)",
+			"opacity": "0.6"
+		}
+		this.elementLookupTable.push(mainDisplayBackground);
+		elementList.push(mainDisplayBackground);
+		
+		var mainDisplayText = new UIString(this.mainTextDisplayIdentifier + "_text");
+		mainDisplayText.properties = {
+			"x": 20,
+			"y": 20,
 			"z": 15,
 			"visible": true,
 			"color": "rgb(0,0,0)",
+			"font": "16px Helvetica",
 			"value": "Test"
 		};
-		mainDisplay.events = {};
+		mainDisplayText.events = {};
+		this.elementLookupTable.push(mainDisplayText);
+		elementList.push(mainDisplayText);
+		
+		var data = {
+			"id": this.mainTextDisplayIdentifier,
+			"properties": {
+				"x": 10,
+				"y": canvas.height - 100,
+				"z": 15,
+				"visible": true
+			},
+			"children": elementList
+		}
+		var mainDisplay = new UIGroup(data);
+		mainDisplay.properties = data.properties;
+		var self = this;
+		var identPrefix = this.mainTextDisplayIdentifier;
+		mainDisplay.setProperty = function(key, value) {
+			if(key == "value") {
+				self.lookupElementById(identPrefix + "_text").setProperty("value", value);
+			} else {
+				this.properties[key] = value;
+			}
+		}
+		
+		mainDisplay.getValue = function() {
+			return self.lookupElementById(identPrefix + "_text").properties.value;
+		}
 		this.elements.push(mainDisplay);
 		this.elementLookupTable.push(mainDisplay);
 		this.mainDisplay = mainDisplay;
@@ -624,13 +705,14 @@ Plume.prototype.registerElement = function(elem) {
 Plume.prototype.processElementFromDefinition = function(elem) {
 	var newItem;
 	switch(elem.class) {
-		case "UIElement": 	newItem = new UIElement(elem.id); break;
-		case "UIString":	newItem = new UIString(elem.id); break;
-		case "UIRect":		newItem = new UIRect(elem.id); break;
-		case "UIImage":		newItem = new UIImage(elem); break;
-		case "UIGroup":		newItem = new UIGroup(elem); break;
-		case "UIPoly":		newItem = new UIPoly(elem.id); break;
-		case "UIEllipse":	newItem = new UIEllipse(elem.id); break;
+		case "UIElement": 		newItem = new UIElement(elem.id); break;
+		case "UIString":		newItem = new UIString(elem.id); break;
+		case "UIRect":			newItem = new UIRect(elem.id); break;
+		case "UIImage":			newItem = new UIImage(elem); break;
+		case "UIGroup":			newItem = new UIGroup(elem); break;
+		case "UIPoly":			newItem = new UIPoly(elem.id); break;
+		case "UIEllipse":		newItem = new UIEllipse(elem.id); break;
+		case "UIRoundedRect":	newItem = new UIRoundedRect(elem.id); break;
 	}
 	newItem.properties = elem.properties;
 	newItem.events = this.processElementEvents(elem.events);
@@ -683,6 +765,7 @@ Plume.prototype.loadScene = function(scene) {
 	this.mainTextDisplayIdentifier = this.activeScene.settings['mainTextDisplay'] || "main_text_display";
 	this.mainOptionDisplayIdentifier = this.activeScene.settings['mainOptionDisplay'] || "main_option_display";
 	this.mainOptionCursorIdentifier = this.activeScene.settings['mainOptionCursor'] || "main_option_cursor";
+	
 	
 	if(!this.parseStory(rawStory)) {
 		this.error("Unable to parse story. Aborting load.");
@@ -1070,13 +1153,13 @@ Plume.prototype.drawNextCharacter = function(ignoreWait) {
 			endTagPosition += 2; //Right after the tag.
 			var tag = this.processTag(this.currentLine.substring(this.currentLinePosition, this.currentLinePosition + endTagPosition), ignoreWait);
 			if(tag !== "-skip-") {
-				this.mainDisplay.properties.value += tag;
+				this.mainDisplay.setProperty("value", this.mainDisplay.getValue() + tag);
 				this.currentLinePosition += endTagPosition;
 			}
 			return;
 		}
 	}
-	this.mainDisplay.properties.value += this.currentLine.substring(this.currentLinePosition, ++this.currentLinePosition);
+	this.mainDisplay.setProperty("value", this.mainDisplay.getValue() + this.currentLine.substring(this.currentLinePosition, ++this.currentLinePosition));
 	
 }
 
