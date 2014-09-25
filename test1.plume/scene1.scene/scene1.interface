@@ -4,6 +4,11 @@
 			"name": "sonic",
 			"type":	"image",
 			"src": 	"sonic.png"
+		},
+		{
+			"name":	"bg_town",
+			"type":	"image",
+			"src":	"bg/town_square.jpg"
 		}
 	],
     "elements": [
@@ -19,7 +24,10 @@
 				"points": [0, 0, 50, 0, 50, 50, 0, 50],
 				"debug": true
     		},
-    		"events": {}
+    		"events": {},
+    		"transformations": [
+    			"rotate(45)"
+    		]
     	},
     	{
     		"class": "UIEllipse",
@@ -57,20 +65,20 @@
     		
     	},
 		{
-        	"class": "UIRect",
+        	"class": "UIImage",
         	"id":	"test_elem_2",
         	"properties": {
         		"x": 0,
         		"y": 0,
         		"z": 0,
-        		"width": "1000",
-        		"height": "500",
-        		"fillColor":	"rgb(225, 225, 255)",
-        		"strokeColor":	"rgb(90, 0, 0)",
+        		"image": "bg_town",
+        		"width": 1000,
+        		"height": 700,
+        		"opacity": "0.5",
         		"visible": true
         	},
         	"events": {}
-        },
+        },	
     	{
     		"class": "UIGroup",
     		"id": "test_group",

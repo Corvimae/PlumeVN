@@ -89,7 +89,6 @@ function UIElement(id) {
 			ctx.translate(dx, dy);
 			switch(action.key) {
 				case "rotate":
-					
 					ctx.rotate(action.value * Math.PI / 180); 
 					break;
 				case "scalex":
@@ -387,16 +386,18 @@ function UIEllipse(id) {
 	return base;
 }
 
-function UIImage(id) {
-	var base = new UIElement(id);
+function UIImage(elem) {
+	var base = new UIElement(elem.id);
 	base.class = "UIImage";
-	var img = document.getElementById("plume_image_" + this.getProperty("image"));
-	this.width = img.width;
-	this.height = img.height;
-	
+	this.properties = elem.properties;
+	base.img = document.getElementById("plume_image_" + this.properties.image);
+
 	base.draw = function(ctx) {
 		var img = document.getElementById("plume_image_" + this.getProperty("image"));
-		ctx.drawImage(img, this.getProperty("x"), this.getProperty("y"));
+		var bWidth = this.properties.width || base.img.width;
+		var bHeight = this.properties.height || base.img.height;
+		ctx.drawImage(img, this.getProperty("x"), this.getProperty("y"), bWidth, bHeight);
+		
 	}
 	
 	base.recalculateBoundingBox = function() {
@@ -626,10 +627,10 @@ Plume.prototype.processElementFromDefinition = function(elem) {
 		case "UIElement": 	newItem = new UIElement(elem.id); break;
 		case "UIString":	newItem = new UIString(elem.id); break;
 		case "UIRect":		newItem = new UIRect(elem.id); break;
-		case "UIImage":		newItem = new UIImage(elem.id); break;
+		case "UIImage":		newItem = new UIImage(elem); break;
 		case "UIGroup":		newItem = new UIGroup(elem); break;
-		case "UIPoly":		newItem = new UIPoly(elem); break;
-		case "UIEllipse":	newItem = new UIEllipse(elem); break;
+		case "UIPoly":		newItem = new UIPoly(elem.id); break;
+		case "UIEllipse":	newItem = new UIEllipse(elem.id); break;
 	}
 	newItem.properties = elem.properties;
 	newItem.events = this.processElementEvents(elem.events);
