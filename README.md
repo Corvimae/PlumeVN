@@ -58,7 +58,7 @@ wait | &lt; wait: delay> | milliseconds | Hold on.&lt;wait: 3000> Got it!
 
 Note: A runScript tag may provide arguments if the function would take them, such as `<runScript: setColor(0, 255, 0)>`. A function that takes no arguments does not need to have parentheses after it, but adding them will not cause any issues.
 
-If the function specified in runScript is proceeded by an exclaimation point, such as `<runScript: displayNumber(3)!>`, Plume will display the next line of dialog as soon as the command is over. Otherwise, Plume will wait for the user to press Space.
+If the function specified in an out-of-line action tag is preceeded by an exclaimation point, such as `<!runScript: displayNumber(3)>`, Plume will display the next line of dialog as soon as the command is over. Otherwise, Plume will wait for the user to press Space.
 
 #####Command Tags
 
