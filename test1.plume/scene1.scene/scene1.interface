@@ -88,8 +88,7 @@
     			"x": 240,
     			"y": 200,
     			"z": 9,
-    			"visible": true,
-    			"debug": true
+    			"visible": true
     		},
     		"children": [
 	    		{
@@ -120,8 +119,7 @@
 		        		"z": 7,
 		        		"visible": true,
 		        		"value": "I am a test string.",
-		        		"color": "rgb(90, 0, 0)",
-		        		"debug": true
+		        		"color": "rgb(90, 0, 0)"
 		        	},
 		        	"events": {
 		        		"onClick": "groupClickTest"
@@ -129,6 +127,16 @@
 		        }
     		],
     		"events": {}
+    	}
+    ],
+    "animations": [
+    	{
+    		"class": "AnimTween",
+    		"id": "myAnimation",
+    		"properties": {
+    			"duration": 1.0,
+    			"easing": "none"
+    		}
     	}
     ]
 }

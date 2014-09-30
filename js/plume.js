@@ -33,18 +33,36 @@ function OptionItem(block, text) {
 	this.text = text;
 }
 
-function ScriptCall(func) {
-	this.func = func;
-}
-
-function GotoItem(target) {
-	this.target = target;
+function ActionItem(action, arguments) {
+	this.action = action.trim().toLowerCase();
+	this.arguments = arguments[0].split(",");
+	this.autoProceed = false;
+	if(this.action.charAt(0) === "!") {
+		this.autoProceed = true;
+		this.action = this.action.substr(1, this.action.length - 1);
+		console.log("Action",this.action);
+	}
+	
+	this.run = function() {
+		var self = Plume.prototype.instance;
+		switch(this.action) {
+			case "runscript":
+				self.runScriptMethod(this.arguments[0], this.arguments.slice(1)); 
+				break;
+			case "to":
+				self.goToBlock(this.arguments[0]);
+		}
+		
+		if(this.autoProceed) self.displayNextDialogLine();
+		
+	}
 }
 
 // ----------- START OF CLASS DEFINITIONS ----------- 
 
 function UIElement(id) {
 	this.class = "UIElement";
+	this.baseClass = "UIElement";
 	this.id = id;
 	this.boundingBox = null;
 	this.baseBoundingBox = {x1: 0, y1: 0, x2: 0, y2: 0}
@@ -96,7 +114,7 @@ function UIElement(id) {
 					break;
 				case "scaley":
 					ctx.scale(1, action.value);
-					break;					
+					break;			
 			}
 			ctx.translate(-1 * dx, -1 * dy);		
 
@@ -138,17 +156,20 @@ function UIElement(id) {
 	}
 	
 	this.applyBoundingBoxTransformations = function() {
+		function rotate(x, y, x0, y0, deg) {
+			return {
+				x: x0 + (x - x0) * Math.cos(deg) + (y - y0) * Math.sin(deg),
+				y: y0 - (x - x0) * Math.sin(deg) + (y - y0) * Math.cos(deg)
+			}
+		}
+				
+		var totalRotation = 0;
 		for(var t = 0; t < this.parsedTransformations.length; t++) {
 			var action = this.parsedTransformations[t];
 			switch(action.key) {
 				case "rotate":
 				//Rotate
-				function rotate(x, y, x0, y0, deg) {
-					return {
-						x: x0 + (x - x0) * Math.cos(deg) + (y - y0) * Math.sin(deg),
-						y: y0 - (x - x0) * Math.sin(deg) + (y - y0) * Math.cos(deg)
-					}
-				}
+
 				var base = this.getParentBasePosition(),
 					x1 = this.boundingBox.x1 - base.x,
 					y1 = this.boundingBox.y1 - base.y,
@@ -178,6 +199,7 @@ function UIElement(id) {
 					x2: base.x + maxX,
 					y2: base.y + maxY
 				}
+				totalRotation += rad;
 				break;
 				case "scalex":
 				var width = this.boundingBox.x2 - this.boundingBox.x1,
@@ -486,12 +508,25 @@ function UIGroup(data) {
 	return base;
 }
 
+function AnimTween(id) {
+	this.class = "AnimTween";
+	this.baseClass = "AnimTween";
+	
+	this.properties = {
+		"duration": 1.0,
+		"easing": "none"
+	}
+}
+
 // ----------- END OF CLASS DEFINITIONS ----------- 
 
 
 //Variables
 Plume.prototype.elements = [];
 Plume.prototype.elementLookupTable = [];
+
+Plume.prototype.animations = [];
+
 Plume.prototype.waitTime = 0; //Delay for a wait element
 Plume.prototype.selectedOption = 0; //Where to display the pointer arrow.
 
@@ -540,6 +575,13 @@ Plume.prototype.loadInterface = function(file) {
 		this.elements.push(newItem);
 		this.elementLookupTable.push(newItem);
 	}
+	
+	for(i = 0; i < json.animations.length; i++) {
+		var anim = json.animations[i];
+		newItem = this.processAnimationFromDefinition(anim);
+		this.animations.push(anim);
+	}
+	
 	//Search for main_text_display
 	var doesMainDisplayExist = false, doesMainOptionDisplayExist = false, doesMainOptionCursorExist = false;
 	for(var i = 0; i < this.elementLookupTable.length; i++) {
@@ -714,6 +756,7 @@ Plume.prototype.processElementFromDefinition = function(elem) {
 		case "UIEllipse":		newItem = new UIEllipse(elem.id); break;
 		case "UIRoundedRect":	newItem = new UIRoundedRect(elem.id); break;
 	}
+	
 	newItem.properties = elem.properties;
 	newItem.events = this.processElementEvents(elem.events);
 	newItem.setTransformations(elem.transformations);
@@ -721,6 +764,16 @@ Plume.prototype.processElementFromDefinition = function(elem) {
 	switch(elem.class) {
 		case "UIPoly": newItem.setPoints(); break;
 	}
+	return newItem;
+}
+
+Plume.prototype.processAnimationFromDefinition = function(anim) {
+	var newItem;
+	switch(anim.class) {
+		case "AnimTween":		newItem = new AnimTween(anim.id); break;
+	}
+	
+	newItem.properties = anim.properties;
 	return newItem;
 }
 
@@ -799,15 +852,19 @@ Plume.prototype.parseStory = function(data) {
 	var blockHeaderRegex = new RegExp("\\\[\\\[([a-zA-Z0-9_-]+)\\\]\\\]");
 	var speechRegex = new RegExp("(.+?): (.+)?")
 	var optionRegex = new RegExp("\{(.*?)\}");
-	var runScriptRegex = new RegExp("( |^)<runScript: (.+)>", "m");
-	var gotoRegex = new RegExp("( |^)<to: (.+)>", "m");
+	var actionRegex = new RegExp("( |^)<([!]{0,1}[a-zA-Z0-9_-]+): (.+)>", "m");
 	//Parse each line
 	var lines = data.replace("\r", "").split("\n");
 	var activeBlock = undefined;
 	for(var i = 0; i < lines.length; i++) {
 		var line = lines[i];
+		
+		//Check for inline comments
+		if(line.indexOf("//") !== -1) line = line.substr(0, line.indexOf("//"));
+		
 		//If the line is blank, ignore it.
 		if(line.length == 0) continue;
+		
 		if(blockHeaderRegex.test(line)) {
 			//We found a block header
 			var header = blockHeaderRegex.exec(line)[1];
@@ -820,12 +877,9 @@ Plume.prototype.parseStory = function(data) {
 				this.debug("Registering block " + activeBlock.name);
 			}
 			activeBlock = newBlock;
-		} else if (runScriptRegex.test(line)) {
-			var parsedLine = runScriptRegex.exec(line)[2];
-			activeBlock.dialogList.push(new ScriptCall(parsedLine));
-		} else if (gotoRegex.test(line)) {
-			var parsedLine = gotoRegex.exec(line)[2];
-			activeBlock.dialogList.push(new GotoItem(parsedLine));
+		} else if (actionRegex.test(line)) {
+			var parsedLine = actionRegex.exec(line);
+			activeBlock.dialogList.push(new ActionItem(parsedLine[2], parsedLine.slice(3, parsedLine.length)));
 		} else if (optionRegex.test(line)) {
 			var parsedLine = optionRegex.exec(line)[1];
 			this.debug("Option found: " + parsedLine);
@@ -991,17 +1045,8 @@ Plume.prototype.displayNextDialogLine = function() {
 		cursor.properties.visible = true;
 		this.setCursorPosition();
 		
-	} else if(line instanceof ScriptCall) {
-		var func = line.func;
-		if(func.substr(func.length - 1, 1) === "!") {
-			//Autoproceed
-			this.runScriptMethod(line.func.substr(0, func.length - 1));
-			this.displayNextDialogLine();
-		} else {
-			this.runScriptMethod(line.func);
-		}
-	} else if (line instanceof GotoItem) {
-		this.goToBlock(line.target);
+	} else if(line instanceof ActionItem) {
+		line.run();
 	} else {
 		this.currentLine = line.text;
 		this.currentLinePosition = 0;
