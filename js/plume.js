@@ -45,14 +45,7 @@ function ActionItem(action, arguments) {
 	
 	this.run = function() {
 		var self = Plume.prototype.instance;
-		switch(this.action) {
-			case "runscript":
-				self.runScriptMethod(this.arguments[0], this.arguments.slice(1)); 
-				break;
-			case "to":
-				self.goToBlock(this.arguments[0]);
-		}
-		
+		self.runTag(this.action, this.arguments, false);
 		if(this.autoProceed) self.displayNextDialogLine();
 		
 	}
@@ -75,6 +68,13 @@ function UIElement(id) {
 	}
 	this.events = {
 		
+	}
+	
+	//Animation support
+	this.animationQueue = [];
+	this.runAnimationFrame = function(ticks) {
+		var anim = this.animationQueue[0];
+		console.log(ticks);
 	}
 	
 	this.draw = function(ctx) { 
@@ -508,6 +508,12 @@ function UIGroup(data) {
 	return base;
 }
 
+function AnimationData(anim) {
+	var self = this;
+	self.animation = anim;
+	self.percentComplete = 0;
+}
+
 function AnimTween(id) {
 	this.class = "AnimTween";
 	this.baseClass = "AnimTween";
@@ -516,6 +522,12 @@ function AnimTween(id) {
 		"duration": 1.0,
 		"easing": "none"
 	}
+	
+	this.apply = function(elem) {
+		console.log('Applying to ' + elem);
+	}
+	
+	return this;
 }
 
 // ----------- END OF CLASS DEFINITIONS ----------- 
@@ -1062,6 +1074,13 @@ Plume.prototype.lookupElementById = function(id) {
 	return null;
 }
 
+Plume.prototype.lookupAnimationById = function(id) {
+	for(var i = 0; i < this.animations.length; i++) {
+	    if(this.animations[i].id === id) return this.animations[i];
+	}
+	return null;
+}
+
 Plume.prototype.moveSelection = function(dir) {
 	var line = this.activeBlock.dialogList[this.blockLine - 1];
 	if(line instanceof DialogOption) {
@@ -1161,32 +1180,51 @@ Plume.prototype.runScriptMethod = function(method, args) {
 
 Plume.prototype.processTag = function(line, ignoreWait) {
 	var parts = line.replace("<", "").replace(">", "").split(":");
-	var key = parts[0].toLowerCase(), value = parts[1];
+	var key = parts[0].toLowerCase(), values = parts[1] ? parts[1].split(",") : [];
+	this.runTag(key, values, ignoreWait);
+	return line;
+}
+
+Plume.prototype.runTag = function(key, values, ignoreWait) {
+console.log(key, values);
 	switch(key) {
 		case "runscript":
 			try {
+				value = values.join(","); //easier this way
 				if(value.indexOf("(") !== -1) {
 					var argLoc = value.indexOf("(");
 					var args = value.substring(argLoc + 1, value.length - 1).match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
 					for(var i = 0; i < args.length; i++) args[i] = args[i].trim().replace(/"(.+)"/, "$1"); //Trim all values, remove quotes
 					this.runScriptMethod(value.substring(0, argLoc).trim(), args);
 				} else {
-					this.runScriptMethod(value.trim());
+					var args = value.substring(argLoc + 1, value.length - 1).match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+					this.runScriptMethod(args[0], args.slice(1));
 				}
 			} catch (exception) {
 				this.error("Failed to run script.", exception);
 			}
 			return "";
 		case "to":
-			this.goToBlock(value.trim());
+			this.goToBlock(values[0].trim());
 			return "-skip-";
 		case "scrollspeed":
-			this.scrollSpeed = parseInt(value, 10);
+			this.scrollSpeed = parseInt(values[0], 10);
 			return "";
 		case "wait":
-			if(ignoreWait !== undefined && !ignoreWait) this.waitTime = parseInt(value, 10);
+			if(ignoreWait !== undefined && !ignoreWait) this.waitTime = parseInt(values[0], 10); break;
+		case "apply":
+			console.log(values[0], values[1]);
+			var anim = this.lookupAnimationById(values[0].trim());
+			var elem = this.lookupElementById(values[1].trim());
+			if(anim && elem) {
+				console.log(anim, elem);
+				anim.apply(elem);
+			} else {
+				this.error("Variable \"" + (anim ? elem ? "not possible" : values[1].trim() : values[0].trim()) + "\" was not found.");
+			}
+			break;
 	}
-	return line;
+
 }
 
 Plume.prototype.drawNextCharacter = function(ignoreWait) {
