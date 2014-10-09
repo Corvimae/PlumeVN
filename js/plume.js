@@ -40,7 +40,6 @@ function ActionItem(action, arguments) {
 	if(this.action.charAt(0) === "!") {
 		this.autoProceed = true;
 		this.action = this.action.substr(1, this.action.length - 1);
-		console.log("Action",this.action);
 	}
 	
 	this.run = function() {
@@ -64,7 +63,8 @@ function UIElement(id) {
 		x: 0,
 		y: 0,
 		z: 0,
-		visible: true
+		visible: true,
+		opacity: 1.0
 	}
 	this.events = {
 		
@@ -73,8 +73,15 @@ function UIElement(id) {
 	//Animation support
 	this.animationQueue = [];
 	this.runAnimationFrame = function(ticks) {
-		var anim = this.animationQueue[0];
-		console.log(ticks);
+		var animData = this.animationQueue[0];
+		var timePassed = (1000 / ticks) / 60;
+		var percentage = timePassed / animData.animation.properties["duration"];
+		animData.percentComplete += percentage;
+		if(animData.percentComplete > 1) animData.percentComplete = 1;
+		for(var val in animData.animation.values) {
+			this.properties[val] = (animData.initialValues[val] * (1 - animData.percentComplete)) + (animData.animation.values[val] * animData.percentComplete);
+		}
+		if(animData.percentComplete == 1) this.animationQueue.shift();
 	}
 	
 	this.draw = function(ctx) { 
@@ -93,12 +100,18 @@ function UIElement(id) {
 		this.properties[key] = value;
 	}
 	
+	this.setProperties = function(propArray) {
+		for(var key in propArray) {
+			this.properties[key] = propArray[key];
+		}	
+	}
+	
 	this.hasEvents = function() {
 		return Object.size(this.events) > 0;
 	}
 	
 	this.applyTransformations = function(ctx) {
-		ctx.globalAlpha = this.getProperty('opacity') || 1.0;
+		ctx.globalAlpha = this.getProperty('opacity') !== undefined ? this.getProperty('opacity') : 1.0;
 		for(var t = 0; t < this.parsedTransformations.length; t++) {
 			var action = this.parsedTransformations[t];
 			var base = this.getParentBasePosition();
@@ -251,7 +264,7 @@ function UIString(id) {
 
 		ctx.fillStyle = this.getProperty("color");
 		//Draw character by character, applying line formatting.
-		var line = this.properties.value;
+		var line = this.getProperty("value");
 		for(var i = 0; i < line.length; i++) {
 			var nextChar = line.substring(i, i + 1);
 			if(nextChar === "<" && line.substring(i - 1, i) !== "\\") {
@@ -307,6 +320,10 @@ function UIString(id) {
 function UIPoly(id) {
 	var base = new UIElement(id);
 	base.class = "UIPoly";
+	
+	base.properties["fillColor"] = "rgba(0, 0, 0, 0)";
+	base.properties["strokeColor"] = "rgb(0, 0, 0)";
+	
 	base.draw = function(ctx) {
 		ctx.beginPath();
 		ctx.moveTo(this.properties.x + this.points[0].x, this.properties.y + this.points[0].y);
@@ -354,6 +371,12 @@ function UIPoly(id) {
 function UIRect(id) {
 	var base = new UIElement(id);
 	base.class = "UIRect";
+	
+	base.properties["width"] = 50;
+	base.properties["height"] = 50;
+	base.properties["fillColor"] = "rgba(0, 0, 0, 0)";
+	base.properties["strokeColor"] = "rgb(0, 0, 0)";
+	
 	base.draw = function(ctx) {
 		ctx.beginPath();
 		ctx.rect(this.getProperty('x'), this.getProperty('y'), this.getProperty('width'), this.getProperty('height'));
@@ -398,6 +421,11 @@ function UIRoundedRect(id) {
 function UIEllipse(id) {
 	var base = new UIElement(id);
 	base.class = "UIEllipse";
+	
+	base.properties["xRadius"] = 1;
+	base.properties["yRadius"] = 1;
+	base.properties["fillColor"] = "rgba(0, 0, 0, 0)";
+	base.properties["strokeColor"] = "rgb(0, 0, 0)";
 	base.draw = function(ctx) {
 		var centerX = this.getProperty('x'), centerY = this.getProperty('y'), 
 			xRadius = this.getProperty('xRadius'), yRadius = this.getProperty('yRadius'),
@@ -434,8 +462,10 @@ function UIEllipse(id) {
 function UIImage(elem) {
 	var base = new UIElement(elem.id);
 	base.class = "UIImage";
-	this.properties = elem.properties;
-	base.img = document.getElementById("plume_image_" + this.properties.image);
+	base.properties["image"] = "missing.png";
+	
+	base.setProperties(elem.properties);
+	base.img = document.getElementById("plume_image_" + base.properties.image);
 
 	base.draw = function(ctx) {
 		var img = document.getElementById("plume_image_" + this.getProperty("image"));
@@ -460,24 +490,24 @@ function UIImage(elem) {
 function UIGroup(data) {
 	var base = new UIElement(data.id);
 	base.class = "UIGroup";
-	var elems = [];
+	base.elems = [];
 	var minX = 0, minY = 0, maxX = 0, maxY = 0;
 
 	for(i = 0; i < data.children.length; i++) {
 		var newElem = Plume.prototype.processElementFromDefinition(data.children[i]);
-		elems.push(newElem);
+		base.elems.push(newElem);
 		newElem.parent = base;
 		Plume.prototype.instance.elementLookupTable.push(newElem);
 	}
 	
 	base.draw = function(ctx) {
-		elems.sort(function(a, b) {
+		base.elems.sort(function(a, b) {
 			return a.properties.z - b.properties.z;
 		});
 		ctx.save();
 		ctx.translate(this.getProperty('x'), this.getProperty('y'));
-		for(var i = 0; i < elems.length; i++) {
-			var elem = elems[i];
+		for(var i = 0; i < base.elems.length; i++) {
+			var elem = base.elems[i];
 			ctx.save();
 			if(elem.properties.visible) Plume.prototype.instance.drawSpecificElement(ctx, elem);
 			ctx.restore();
@@ -488,8 +518,8 @@ function UIGroup(data) {
 	base.recalculateBoundingBox = function() {
 		var basePos = this.getParentBasePosition();
 		minX = this.properties.x, minY = this.properties.y, maxX = -99999, maxY = -99999
-		for(var i = 0; i < elems.length; i++) {
-			var elem = elems[i];
+		for(var i = 0; i < base.elems.length; i++) {
+			var elem = base.elems[i];
 			var box = elem.boundingBox;
 			if(box !== null) {
 				if(box.x2 > maxX) maxX = box.x2;
@@ -512,22 +542,35 @@ function AnimationData(anim) {
 	var self = this;
 	self.animation = anim;
 	self.percentComplete = 0;
+	self.initialValues = [];
+	
+	self.setInitialValues = function(elem) {
+		self.initialValues = [];
+	    for(var key in elem.properties) {
+	        if(elem.properties.hasOwnProperty(key)) {
+	            self.initialValues[key] = elem.properties[key];
+	        }
+	    }
+	}
 }
 
 function AnimTween(id) {
 	this.class = "AnimTween";
 	this.baseClass = "AnimTween";
+	this.id = id;
 	
 	this.properties = {
 		"duration": 1.0,
 		"easing": "none"
-	}
+	};
+	
+	this.values = {};
 	
 	this.apply = function(elem) {
-		console.log('Applying to ' + elem);
+		var newData = new AnimationData(this);
+		newData.setInitialValues(elem);
+		elem.animationQueue.push(newData);
 	}
-	
-	return this;
 }
 
 // ----------- END OF CLASS DEFINITIONS ----------- 
@@ -590,8 +633,8 @@ Plume.prototype.loadInterface = function(file) {
 	
 	for(i = 0; i < json.animations.length; i++) {
 		var anim = json.animations[i];
-		newItem = this.processAnimationFromDefinition(anim);
-		this.animations.push(anim);
+		var newItem = this.processAnimationFromDefinition(anim);
+		this.animations.push(newItem);
 	}
 	
 	//Search for main_text_display
@@ -602,7 +645,6 @@ Plume.prototype.loadInterface = function(file) {
 			this.mainDisplay = this.elementLookupTable[i];
 			mainDisplay.setProperty = function(key, value) {
 				if(key == "value") {
-				console.log(identPrefix + "_text");
 					self.lookupElementById(identPrefix + "_text").setProperty("value", value);
 				} else {
 					this.properties[key] = value;
@@ -638,8 +680,7 @@ Plume.prototype.loadInterface = function(file) {
 			"radius": 5,
 			"fillColor": "rgb(255, 255, 255)",
 			"opacity": "0.6"
-		}
-		this.elementLookupTable.push(mainDisplayBackground);
+		};
 		elementList.push(mainDisplayBackground);
 		
 		var mainDisplayText = new UIString(this.mainTextDisplayIdentifier + "_text");
@@ -653,7 +694,6 @@ Plume.prototype.loadInterface = function(file) {
 			"value": "Test"
 		};
 		mainDisplayText.events = {};
-		this.elementLookupTable.push(mainDisplayText);
 		elementList.push(mainDisplayText);
 		
 		var data = {
@@ -667,7 +707,7 @@ Plume.prototype.loadInterface = function(file) {
 			"children": elementList
 		}
 		var mainDisplay = new UIGroup(data);
-		mainDisplay.properties = data.properties;
+		mainDisplay.setProperties(data.properties);
 		var self = this;
 		var identPrefix = this.mainTextDisplayIdentifier;
 		mainDisplay.setProperty = function(key, value) {
@@ -679,7 +719,7 @@ Plume.prototype.loadInterface = function(file) {
 		}
 		
 		mainDisplay.getValue = function() {
-			return self.lookupElementById(identPrefix + "_text").properties.value;
+			return self.lookupElementById(identPrefix + "_text").getProperty("value");
 		}
 		this.elements.push(mainDisplay);
 		this.elementLookupTable.push(mainDisplay);
@@ -691,26 +731,26 @@ Plume.prototype.loadInterface = function(file) {
 		var elementList = [];
 		for(var i = 0; i < 4; i++) {
 			var newOption = new UIString(this.mainOptionDisplayIdentifier + '_selection_' + (3 - i));
-			newOption.properties = {
+			newOption.setProperties({
 				"x": 0,
 				"y": -40*i,
 				"z": 0,
 				"visible": true,
 				"color": "rgb(0,0,0)",
 				"value": "Option " + (3 - i)
-			}
+			});
 			newOption.events = {};
 			elementList.push(newOption);
 		}
 		var mainText = new UIString(this.mainOptionDisplayIdentifier + '_dialog');
-		mainText.properties = {
+		mainText.setProperties({
 			"x": 0,
 			"y": -160,
 			"z": 0,
 			"visible": true,
 			"color": "rgb(0,0,0)",
 			"value": "Dialog"
-		}
+		});
 		mainText.events = {};
 		elementList.push(mainText);
 		
@@ -725,7 +765,7 @@ Plume.prototype.loadInterface = function(file) {
 			"children": elementList
 		}
 		var mainGroup = new UIGroup(data);
-		mainGroup.properties = data.properties;
+		mainGroup.setProperties(data.properties);
 		this.elements.push(mainGroup);
 		this.elementLookupTable.push(mainGroup);
 		this.mainOptionDisplay = mainGroup;
@@ -733,14 +773,14 @@ Plume.prototype.loadInterface = function(file) {
 	
 	if(!doesMainOptionCursorExist) {
 		var cursor = new UIPoly(this.mainOptionCursorIdentifier);
-		cursor.properties = {
+		cursor.setProperties({
 			"x": 100,
 			"y": 100,
 			"z": 20,
 			"visible": true,
 			"points": [0, 0, 5, 5, 0, 10],
 			"fillColor": "#000000"
-		}
+		});
 		cursor.events = {};
 		cursor.setPoints();
 		this.registerElement(cursor);
@@ -769,7 +809,7 @@ Plume.prototype.processElementFromDefinition = function(elem) {
 		case "UIRoundedRect":	newItem = new UIRoundedRect(elem.id); break;
 	}
 	
-	newItem.properties = elem.properties;
+	newItem.setProperties(elem.properties);
 	newItem.events = this.processElementEvents(elem.events);
 	newItem.setTransformations(elem.transformations);
 	//Secondary setup
@@ -786,6 +826,7 @@ Plume.prototype.processAnimationFromDefinition = function(anim) {
 	}
 	
 	newItem.properties = anim.properties;
+	newItem.values = anim.values;
 	return newItem;
 }
 
@@ -1186,7 +1227,6 @@ Plume.prototype.processTag = function(line, ignoreWait) {
 }
 
 Plume.prototype.runTag = function(key, values, ignoreWait) {
-console.log(key, values);
 	switch(key) {
 		case "runscript":
 			try {
@@ -1213,11 +1253,9 @@ console.log(key, values);
 		case "wait":
 			if(ignoreWait !== undefined && !ignoreWait) this.waitTime = parseInt(values[0], 10); break;
 		case "apply":
-			console.log(values[0], values[1]);
 			var anim = this.lookupAnimationById(values[0].trim());
 			var elem = this.lookupElementById(values[1].trim());
 			if(anim && elem) {
-				console.log(anim, elem);
 				anim.apply(elem);
 			} else {
 				this.error("Variable \"" + (anim ? elem ? "not possible" : values[1].trim() : values[0].trim()) + "\" was not found.");
@@ -1264,6 +1302,12 @@ Plume.prototype.draw = function() {
 	    	this.waitTime = 0;
 			self.drawContext.clearRect(0, 0, self.canvas.width, self.canvas.height);
 			
+			//Run animations
+			var elems = this.elementLookupTable.slice(0);
+			for(i = 0; i < elems.length; i++) {
+				if(elems[i].animationQueue.length > 0) elems[i].runAnimationFrame(delta);
+			}
+
 			this.elements.sort(function(a, b) {
 				return a.properties.z - b.properties.z;
 			});
@@ -1275,7 +1319,9 @@ Plume.prototype.draw = function() {
 			this.drawContext.save();
 			this.drawContext.scale(this.pixelRatio, this.pixelRatio);
 			for(var i = 0; i < this.elements.length; i++) {
-				this.drawSpecificElement(self.drawContext, this.elements[i])
+				var elem = this.elements[i];
+				if(elem.animationQueue.length > 0) elem.runAnimationFrame(delta);
+				this.drawSpecificElement(self.drawContext, elem)
 			}
 			this.drawContext.restore();
 		}

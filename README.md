@@ -133,9 +133,8 @@ Represents a basic rectangle. Extends UIElement.
 
 width: The width of the rectangle<br>
 height: The height of the rectangle<br>
-fillColor: The background color of the rectangle. If no fillColor is specified, the element is not filled.<br>
-strokeColor: The border color of the rectangle. If no borderColor is specified, no border is drawn.
-
+fillColor: The background color of the rectangle.<br>
+strokeColor: The border color of the rectangle.
 ####UIRoundedRect
 
 Represents a rectangle with rounded corners. Extends UIRect.
@@ -151,8 +150,8 @@ Represents a basic ellipse, centered at (x, y). Extends UIElement.
 
 xRadius: The distance from the center to the left and right-most points on the ellipse.<br>
 yRadius: The distance from the center to the top and bottom-most points on the ellipse.<br>
-fillColor: The background color of the ellipse. If no fillColor is specified, the element is not filled.<br>
-strokeColor: The border color of the ellipse. If no borderColor is specified, no border is drawn.
+fillColor: The background color of the ellipse.<br>
+strokeColor: The border color of the ellipse.
 
 ####UIString
 

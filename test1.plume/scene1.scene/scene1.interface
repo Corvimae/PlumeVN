@@ -26,10 +26,7 @@
 				"radius": 5,
 				"debug": true
     		},
-    		"events": {},
-    		"transformations": [
-    			"rotate(45)"
-    		]
+    		"events": {}
     	},
     	{
     		"class": "UIEllipse",
@@ -88,7 +85,8 @@
     			"x": 240,
     			"y": 200,
     			"z": 9,
-    			"visible": true
+    			"visible": true,
+    			"debug": true
     		},
     		"children": [
 	    		{
@@ -134,8 +132,11 @@
     		"class": "AnimTween",
     		"id": "myAnimation",
     		"properties": {
-    			"duration": 1.0,
+    			"duration": 5.0,
     			"easing": "none"
+    		},
+    		"values": {
+    			"opacity": "0"
     		}
     	}
     ]

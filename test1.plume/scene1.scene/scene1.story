@@ -5,7 +5,7 @@
 May: This is the<color: rgb(0, 150, 0)> starting point of the story.<br><wait: 1000><color: rgb(0,0,0)>A script will be run now.<runScript: test2(""Hello there"", 23)><scrollSpeed: 700>... 
 <!runScript: test2, "Hello there, again.", 23>
 
-<apply: myAnimation, test_elem>
+<apply: myAnimation, test_elem_3>
 
 Bill: My dialog is second.
 
