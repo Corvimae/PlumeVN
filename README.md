@@ -52,13 +52,16 @@ br | &lt;br> | -- | First line&lt;br>Second Line
 color | &lt;color: code>|"rgb(int, int int)"|&lt;color: rgb(255,0,0)>This text is red.
 scrollSpeed | &lt;scrollSpeed: rate> | milliseconds | &lt;scrollSpeed: 500>Dot dot dot.
 runScript | &lt;runScript: method> | method name | &lt;runScript:shakeScreen>Whoaaaa
-to | &lt; to: blockName> | block name | Now back to the start. &lt;to: start>
-wait | &lt; wait: delay> | milliseconds | Hold on.&lt;wait: 3000> Got it!
+to | &lt;to: blockName> | block name | Now back to the start. &lt;to: start>
+wait | &lt;wait: delay> | milliseconds | Hold on.&lt;wait: 3000> Got it!
+apply<sup>1</sup> | &lt; apply: anim, elem> | animation id, element id | &lt; apply: myFirstAnim, myElem>
 <br>
 
 Note: A runScript tag may provide arguments if the function would take them, such as `<runScript: setColor(0, 255, 0)>`. A function that takes no arguments does not need to have parentheses after it, but adding them will not cause any issues.
 
-If the function specified in an out-of-line action tag is preceeded by an exclaimation point, such as `<!runScript: displayNumber(3)>`, Plume will display the next line of dialog as soon as the command is over. Otherwise, Plume will wait for the user to press Space.
+If the function specified in an out-of-line action tag is preceeded by an exclaimation point, such as `<!runScript: displayNumber(3)>`, Plume will immediately process the line after it as soon as it can. Otherwise, Plume will wait for the user to press Space.
+
+<sup>1</sup> An easy way to remember the order for the `apply` tag is _animation applies to element_
 
 #####Command Tags
 
@@ -79,7 +82,7 @@ If the user selects "Yes", Plume will return to the startOfTutorial block and di
 
 A user-specified decisions UIElement can be defined in the interface by creating a UIGroup with the id `main_option_display`, unless the configuration key `mainOptionDisplay` is set. This UIGroup should contain five UIString items with the ids `[prefix]_selection_0`, `[prefix]_selection_1`, `[prefix]_selection_2`, `[prefix]_selection_3`, and `[prefix]_dialog`. By default, these will be `main_option_display_selection_0`, and so forth.
 
-Similarly, a UIGroup with the id `main_text_display` can be set to customize the appearance of the standard dialog box. This group should contain a UIString with the id `main_text_display_text`. If no `main_text_display` is defined, one will be created automatically, and it will include a UIRoundedRect with the name `main_text_display_autogen_bg`.
+Similarly, a UIGroup with the id `main_text_display` can be set to customize the appearance of the standard dialog box. This group should contain a UIString with the id `main_text_display_text`, which holds the current line of dialog, and an element called `main_text_display_continue`, which is an icon that displays when the user can press Space to continue. If no `main_text_display` is defined, one will be created automatically, and it will include an additional UIRoundedRect with the name `main_text_display_autogen_bg`.
 
 The decisions interface uses a UIElement set by the configuration key `mainOptionCursor` (defaulting to `main_option_cursor`) to designate which option the user has selected. If no valid object is supplied in the interface file, one will be created automatically. You may use any UIElement as your cursor.
 
@@ -95,7 +98,8 @@ The general structure of an Interface file is as follows:
 ```
 {
     "assets": [],
-    "elements": []
+    "elements": [],
+    "animations": []
 }
 ```
 
@@ -231,6 +235,35 @@ The following transformations can be run in the current version of Plume. Transf
 **scaleX**: Extends an element outward in both x-directions by a specified multiplier, such that the new total width is [multipler] * the previous width.
 **scaleY**: Same as scaleX, except in the y-direction.
 
+
+####Animations
+Animations are defined in the `animations` array of an interface file. They define the final state an element should be in after the animation is completed, as well as various properties of the animation itself. An animation can affect any number of element properties.
+
+Animations have the class `AnimTween`, and requires an ID and properties, just like a UIElement. Additionally, they require an additional array `values`, which is similar to a UIElement `properties` array, except holding the final positions an element should be in after the animation is completed.
+
+Animations do not do anything until they are applied with the `apply` tag.
+
+Currently, position-based properties do not animate correctly if the element is transformed. This is a bug.
+
+**Properties**
+
+duration: How long the animation runs for, in seconds.
+
+An Animation definition might look something like this:
+```
+{
+	"class": "AnimTween",
+	"id": "MyFirstAnimation",
+	"properties": {
+		"duration": 1.0
+	},
+	"values": {
+		"x": 0,
+		"y": 0
+	}
+}
+```
+
 ####Example .interface File
 ```
 {
@@ -285,7 +318,20 @@ The following transformations can be run in the current version of Plume. Transf
         	},
         	"events": {}
         }
-    ]
+    ],
+    "animations": [
+	    {
+			"class": "AnimTween",
+			"id": "MyFirstAnimation",
+			"properties": {
+				"duration": 1.0
+			},
+			"values": {
+				"x": 0,
+				"y": 0
+			}
+		}
+	]
 }
 ```
 ###Scripting

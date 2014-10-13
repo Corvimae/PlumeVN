@@ -70,18 +70,51 @@ function UIElement(id) {
 		
 	}
 	
+	var rgbaRegex = /(?:rgb)\((?:([0-9]+)[, ]*)(?:([0-9]+)[, ]*)(?:([0-9]+)[, ]*)\)/;
 	//Animation support
 	this.animationQueue = [];
+	var lastAnimationFrameTime = 0;
 	this.runAnimationFrame = function(ticks) {
 		var animData = this.animationQueue[0];
-		var timePassed = (1000 / ticks) / 60;
-		var percentage = timePassed / animData.animation.properties["duration"];
-		animData.percentComplete += percentage;
-		if(animData.percentComplete > 1) animData.percentComplete = 1;
-		for(var val in animData.animation.values) {
-			this.properties[val] = (animData.initialValues[val] * (1 - animData.percentComplete)) + (animData.animation.values[val] * animData.percentComplete);
+		var currTime = Date.now();
+		if(lastAnimationFrameTime == 0) {
+			lastAnimationFrameTime = currTime;
+			return;
 		}
-		if(animData.percentComplete == 1) this.animationQueue.shift();
+		var timePassed = currTime - lastAnimationFrameTime;
+		var percentage = timePassed / (animData.animation.properties["duration"] * 1000);
+		lastAnimationFrameTime = currTime;
+		animData.percentComplete += percentage;
+
+		if(animData.percentComplete > 1) animData.percentComplete = 1;
+		
+		
+		for(var key in animData.animation.values) {
+			var initVal = animData.initialValues[key];
+			var finalVal = animData.animation.values[key];
+			var isColor = false;
+			//Is it a color code?
+			if(("" + initVal).toLowerCase().substr(0, 3) == "rgb") {
+				var args = rgbaRegex.exec(initVal.toLowerCase());
+				initVal = [args[1], args[2], args[3]];
+				args = rgbaRegex.exec(finalVal.toLowerCase());
+				finalVal = [args[1], args[2], args[3]];
+				isColor = true;
+			}		
+			if(isColor) {
+				var finalColors = [0, 0, 0];
+				for(i = 0; i < 3; i++) {
+					finalColors[i] = Math.floor((initVal[i] * (1 - animData.percentComplete)) + (finalVal[i] * animData.percentComplete));		
+				}
+				this.properties[key] = "rgb(" + finalColors.join(",") + ")";
+			} else {
+				this.properties[key] = (initVal * (1 - animData.percentComplete)) + (finalVal * animData.percentComplete);				
+			}
+		}
+		if(animData.percentComplete == 1) {
+			this.animationQueue.shift();
+			console.log('Completed');
+		}
 	}
 	
 	this.draw = function(ctx) { 
@@ -643,14 +676,6 @@ Plume.prototype.loadInterface = function(file) {
 		if(this.elementLookupTable[i].id === this.mainTextDisplayIdentifier) {
 			doesMainDisplayExist = true;
 			this.mainDisplay = this.elementLookupTable[i];
-			mainDisplay.setProperty = function(key, value) {
-				if(key == "value") {
-					self.lookupElementById(identPrefix + "_text").setProperty("value", value);
-				} else {
-					this.properties[key] = value;
-				}
-			}
-		
 			mainDisplay.getValue = function() {
 				return self.lookupElementById(identPrefix + "_text").properties.value;
 			}
@@ -696,13 +721,24 @@ Plume.prototype.loadInterface = function(file) {
 		mainDisplayText.events = {};
 		elementList.push(mainDisplayText);
 		
+		var mainDisplayContinueIcon = new UIPoly(this.mainTextDisplayIdentifier + "_continue");
+		mainDisplayContinueIcon.properties = {
+			"x": canvas.width - 45,
+			"y": 75,
+			"z": 15,
+			"visible": false,
+			"fillColor": "rgb(0, 0, 0)",
+			"points": [0, 0, 10, 0, 5, 5]
+		}
+		mainDisplayContinueIcon.events = {};
+		elementList.push(mainDisplayContinueIcon);
 		var data = {
 			"id": this.mainTextDisplayIdentifier,
 			"properties": {
 				"x": 10,
 				"y": canvas.height - 100,
 				"z": 15,
-				"visible": true
+				"visible": true,
 			},
 			"children": elementList
 		}
@@ -710,13 +746,7 @@ Plume.prototype.loadInterface = function(file) {
 		mainDisplay.setProperties(data.properties);
 		var self = this;
 		var identPrefix = this.mainTextDisplayIdentifier;
-		mainDisplay.setProperty = function(key, value) {
-			if(key == "value") {
-				self.lookupElementById(identPrefix + "_text").setProperty("value", value);
-			} else {
-				this.properties[key] = value;
-			}
-		}
+
 		
 		mainDisplay.getValue = function() {
 			return self.lookupElementById(identPrefix + "_text").getProperty("value");
@@ -787,6 +817,17 @@ Plume.prototype.loadInterface = function(file) {
 		this.mainOptionCursor = cursor;
 	}
 	
+	mainDisplay.setProperty = function(key, value) {
+		if(key == "value") {
+			self.lookupElementById(identPrefix + "_text").setProperty("value", value);
+		} else {
+			this.properties[key] = value;
+		}
+	}
+	
+	mainDisplay.shouldShowContinueIcon = function(value) {
+		self.lookupElementById(identPrefix + "_continue").setProperty("visible", value);
+	}
 	console.log('Interface created');
 	
 }
@@ -1312,9 +1353,14 @@ Plume.prototype.draw = function() {
 				return a.properties.z - b.properties.z;
 			});
 			
-			if(this.currentLinePosition < this.currentLine.length && this.writeTicks > this.scrollSpeed) { 
-				this.drawNextCharacter();
-				this.writeTicks = 0;
+			if(this.currentLinePosition < this.currentLine.length) { 
+				if(this.writeTicks > this.scrollSpeed) {
+					this.mainDisplay.shouldShowContinueIcon(false);
+					this.drawNextCharacter();
+					this.writeTicks = 0;
+				}
+			} else {
+				this.mainDisplay.shouldShowContinueIcon(Math.floor(this.writeTicks / 1000) % 2 == 0);
 			}
 			this.drawContext.save();
 			this.drawContext.scale(this.pixelRatio, this.pixelRatio);
