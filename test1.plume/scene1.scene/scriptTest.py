@@ -12,7 +12,6 @@ def test():
 	global testVar
 	testVar += 10
 	print "Test var is now " + str(testVar)
-
 	
 def test2(data, num):
 	total = int(num) + 20
@@ -21,3 +20,4 @@ def test2(data, num):
 	
 def groupClickTest():
 	print "Clicked!"
+	

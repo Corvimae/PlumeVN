@@ -618,6 +618,8 @@ Plume.prototype.animations = [];
 Plume.prototype.waitTime = 0; //Delay for a wait element
 Plume.prototype.selectedOption = 0; //Where to display the pointer arrow.
 
+Plume.prototype.globalScriptFile = undefined;
+
 
 Plume.prototype.loadProject = function(file) {
 	this.debug("Loading project: " + file);
@@ -634,13 +636,19 @@ Plume.prototype.loadProject = function(file) {
 		}
 	});
 	
+	if(this.settings["globalScriptFile"] !== undefined) {
+		this.setupPython(this.loadFile(this.basePath + "/" + this.settings['globalScriptFile']), function(val) {
+			Plume.prototype.instance.globalScriptFile = val;
+		});
+		
+	}
 	
 	if(this.settings["mainScene"] === undefined) {
 		//Load the default scene
 		this.loadScene("scene1.scene");
 	}
 	
-		return true;
+	return true;
 	
 }
 
@@ -922,7 +930,9 @@ Plume.prototype.loadScene = function(scene) {
 	this.loadInterface(baseUrl + sceneName + ".interface");
 	
 	if(this.activeScene.settings['scriptFile'] !== undefined) {
-		this.setupPython(this.loadFile(baseUrl + this.activeScene.settings['scriptFile']));
+		this.setupPython(this.loadFile(baseUrl + this.activeScene.settings['scriptFile']), function(val) {
+			Plume.prototype.instance.activeScene.scriptModule = val;
+		});
 	}
 	
 	this.scrollSpeed = this.getSceneSettingsValue("scrollSpeed", 60);
@@ -1061,20 +1071,18 @@ Plume.prototype.start = function() {
 
 Plume.prototype.initializeKeyBindings = function() {
 	var self = this;
-	document.onkeypress = function(event) {
-		var val = event.keyCode;
-		if(val === 32) { //space
-			self.finishLine();
-		} 
-		return false;
-	}
-	
-	document.onkeydown = function(event) {
+
+	document.onkeyup = function(event) {
 		var val = event.keyCode;
 		if (val === 38) { //up
 			self.moveSelection(-1);
 		} else if (val === 40) { //down
 			self.moveSelection(1);
+		} else if (val === 32) {
+			self.finishLine()
+		} else {
+			// Pass keypress to script
+			self.runScriptMethod("onKeyPress", [val], true);
 		}
 	}
 }
@@ -1239,26 +1247,53 @@ function builtinRead(x) {
     return Sk.builtinFiles["files"][x];
 }
 
-Plume.prototype.setupPython = function(script) {
+Plume.prototype.setupPython = function(script, callback) {
 	this.debug('Setting up Python scripts.');
 	Sk.configure({output: this.debug, read: builtinRead});
     try {
-      this.activeScene.scriptModule = Sk.importMainWithBody("<stdin>", false, script); 
+    	callback(Sk.importMainWithBody("<stdin>", false, script)); 
     } catch(e) {
        console.log(e.toString())
     }
 }
 
-Plume.prototype.runScriptMethod = function(method, args) {
-	if(args === undefined) {
-		//Have to use the instance or else the activeScene might not be set in the saved event environment
-		Sk.misceval.callsim(Plume.prototype.instance.activeScene.scriptModule.tp$getattr(method)); 	
-	} else {
-		args.unshift(Plume.prototype.instance.activeScene.scriptModule.tp$getattr(method));
-		for(var i = 1; i < args.length; i++) args[i] = Sk.builtin.str(args[i]);
-		Sk.misceval["callsim"].apply(this, args);
+Plume.prototype.runScriptMethod = function(method, args, report) {
+	try {
+		if(args === undefined) {
+			//Have to use the instance or else the activeScene might not be set in the saved event environment
+			Sk.misceval.callsim(Plume.prototype.instance.activeScene.scriptModule.tp$getattr(method)); 	
+		} else {
+			var convArgs = [];
+			convArgs.push(Plume.prototype.instance.activeScene.scriptModule.tp$getattr(method));
+			for(var i = 0; i < args.length; i++) convArgs.push(Sk.builtin.str(args[i]));
+			Sk.misceval["callsim"].apply(this, convArgs);
+		}
+	} catch(e) {
+		if(report && !Plume.prototype.runGlobalScriptMethod(method, args)) this.error(e.toString());
 	}
 }
+
+
+Plume.prototype.runGlobalScriptMethod = function(method, args) {
+	if(Plume.prototype.instance.globalScriptFile === undefined) return false;
+	console.log('global');
+	try {
+		if(args === undefined) {
+			//Have to use the instance or else the activeScene might not be set in the saved event environment
+			Sk.misceval.callsim(Plume.prototype.instance.globalScriptFile.tp$getattr(method)); 	
+		} else {
+			var convArgs = [];
+			convArgs.push(Plume.prototype.instance.globalScriptFile.tp$getattr(method));
+			for(var i = 0; i < args.length; i++) convArgs.push(Sk.builtin.str(args[i]));
+			Sk.misceval["callsim"].apply(this, convArgs);
+		}
+		return true;
+	} catch(e) {
+		console.log(e.toString());
+		return false;
+	}
+}
+
 
 Plume.prototype.processTag = function(line, ignoreWait) {
 	var parts = line.replace("<", "").replace(">", "").split(":");

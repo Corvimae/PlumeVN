@@ -335,7 +335,13 @@ An Animation definition might look something like this:
 }
 ```
 ###Scripting
-Plume uses the Skulpt library to provide a limited version of Python in which the author can create more advanced functionality. Plume will only accept valid `.py` files. A script file is defined in `[myNovel].plume/[myScene].scene/[scriptFileName].py`. Note that the Python file name does not need to match the scene name, unlike interface and story files.
+Plume uses the Skulpt framework to provide a limited version of Python in which an author can create more advanced functionality. Plume will only accept valid `.py` files. A script file is defined in `[myNovel].plume/[myScene].scene/[scriptFileName].py`. Note that the Python file name does not need to match the scene name, unlike interface and story files.
+
+Plume will always attempt to run a method from a scene's script file before defaulting to the global script file, if one exists.
+
+Plume names certain methods which it attempts to run when certain events occur. You may define these methods in your scene's script file, or your global script file.
+
+`onKeyPress(key: Integer)` - Runs whenever a keyboard key is released. Space, Up Arrow, and Down Arrow cannot be overridden.
 
 ####Plume Extension
 In order to use the Plume Python extension, the plume library must be imported using `import plume`. 
@@ -385,6 +391,12 @@ A `plume.config` file must be specified in the root directory of the plume file.
 `title="Title Name"` - Defines the name of the visual novel
 
 `mainScene="sceneName"` - Tells Plume which scene should be loaded first. Should not include .scene
+
+`globalScriptFile="myScript.py"` - Tells Plume what Python file it should treat as the global script file. If no `globalScriptFile` is specified, Plume will not use one.
+
+`stageWidth="1000"` - Defines the width of the workable stage
+
+`stageHeight = "700"` - Defines the height of the workable stage	
 
 
 
