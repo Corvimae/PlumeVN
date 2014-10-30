@@ -1074,15 +1074,16 @@ Plume.prototype.initializeKeyBindings = function() {
 
 	document.onkeyup = function(event) {
 		var val = event.keyCode;
-		if (val === 38) { //up
-			self.moveSelection(-1);
-		} else if (val === 40) { //down
-			self.moveSelection(1);
-		} else if (val === 32) {
-			self.finishLine()
-		} else {
-			// Pass keypress to script
-			self.runScriptMethod("onKeyPress", [val], true);
+		var callAttempt = self.runScriptMethod("onKeyPress", [val], true);
+		console.log("callAttempt: ", callAttempt);
+		if(!callAttempt) {
+			if (val === 38) { //up
+				self.moveSelection(-1);
+			} else if (val === 40) { //down
+				self.moveSelection(1);
+			} else if (val === 32) {
+				self.finishLine()
+			}
 		}
 	}
 }
@@ -1261,36 +1262,40 @@ Plume.prototype.runScriptMethod = function(method, args, report) {
 	try {
 		if(args === undefined) {
 			//Have to use the instance or else the activeScene might not be set in the saved event environment
-			Sk.misceval.callsim(Plume.prototype.instance.activeScene.scriptModule.tp$getattr(method)); 	
+			var call = Sk.misceval.callsim(Plume.prototype.instance.activeScene.scriptModule.tp$getattr(method))
+			return call === undefined ? undefined : call.v; 	
 		} else {
 			var convArgs = [];
 			convArgs.push(Plume.prototype.instance.activeScene.scriptModule.tp$getattr(method));
 			for(var i = 0; i < args.length; i++) convArgs.push(Sk.builtin.str(args[i]));
-			Sk.misceval["callsim"].apply(this, convArgs);
+			var call = Sk.misceval["callsim"].apply(this, convArgs);
+			return call === undefined ? undefined : call.v; 	
 		}
 	} catch(e) {
-		if(report && !Plume.prototype.runGlobalScriptMethod(method, args)) this.error(e.toString());
-	}
+		var val = false;
+		if(report && (val = Plume.prototype.runGlobalScriptMethod(method, args)) === undefined) this.error(e.toString());
+		return val;
+	} 
 }
 
 
 Plume.prototype.runGlobalScriptMethod = function(method, args) {
-	if(Plume.prototype.instance.globalScriptFile === undefined) return false;
-	console.log('global');
+	if(Plume.prototype.instance.globalScriptFile === undefined) return undefined;
 	try {
 		if(args === undefined) {
 			//Have to use the instance or else the activeScene might not be set in the saved event environment
-			Sk.misceval.callsim(Plume.prototype.instance.globalScriptFile.tp$getattr(method)); 	
+			var call = Sk.misceval.callsim(Plume.prototype.instance.globalScriptFile.tp$getattr(method));
+			return call === undefined ? false : call.v; 	
 		} else {
 			var convArgs = [];
 			convArgs.push(Plume.prototype.instance.globalScriptFile.tp$getattr(method));
 			for(var i = 0; i < args.length; i++) convArgs.push(Sk.builtin.str(args[i]));
-			Sk.misceval["callsim"].apply(this, convArgs);
+			var call = Sk.misceval["callsim"].apply(null, convArgs);
+			return call === undefined ? false : call.v; 	
 		}
-		return true;
 	} catch(e) {
 		console.log(e.toString());
-		return false;
+		return undefined;
 	}
 }
 

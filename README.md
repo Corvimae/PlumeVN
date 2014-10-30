@@ -341,7 +341,7 @@ Plume will always attempt to run a method from a scene's script file before defa
 
 Plume names certain methods which it attempts to run when certain events occur. You may define these methods in your scene's script file, or your global script file.
 
-`onKeyPress(key: Integer)` - Runs whenever a keyboard key is released. Space, Up Arrow, and Down Arrow cannot be overridden.
+`onKeyPress(key: Integer)` - Runs whenever a keyboard key is released. If `True` is returned, then Plume will stop key press event propagation and not continue with any default keyboard functionality.
 
 ####Plume Extension
 In order to use the Plume Python extension, the plume library must be imported using `import plume`. 
